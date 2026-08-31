@@ -1,0 +1,18 @@
+{
+  "name": "helping-hand",
+  "private": true,
+  "packageManager": "bun@1.4.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:api": "turbo dev --filter=@helping-hand/api",
+    "dev:web": "turbo dev --filter=@helping-hand/web"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.12"
+  }
+}

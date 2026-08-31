@@ -1,0 +1,13 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "helping-hand",
+	"compatibility_date": "2025-08-03",
+	"main": "./src/index.ts",
+	"d1_databases": [
+		{
+			"binding": "database",
+			"database_name": "helping-hand-db",
+			"database_id": "f928870b-79f4-48bc-9205-02b7ec052ad0"
+		}
+	]
+}

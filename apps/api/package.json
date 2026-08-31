@@ -1,0 +1,18 @@
+{
+  "name": "@helping-hand/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@openrouter/sdk": "^1.2.86",
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.110.0"
+  }
+}
