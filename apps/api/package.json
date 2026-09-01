@@ -6,13 +6,23 @@
     "dev": "wrangler dev --port 8787",
     "build": "wrangler deploy --dry-run --outdir dist",
     "deploy": "wrangler deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:migrate:local": "wrangler d1 migrations apply helping-hand-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply helping-hand-db --remote",
+    "test": "bun test",
+    "test:ai:live": "RUN_LIVE_AI_TESTS=1 bun --env-file=.dev.vars test src/services/task-ai.live.test.ts"
   },
   "dependencies": {
+    "@helping-hand/schemas": "workspace:*",
     "@openrouter/sdk": "^1.2.86",
-    "hono": "^4.13.5"
+    "better-auth": "^1.7.2",
+    "hono": "^4.13.5",
+    "pino": "^10.3.1",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "miniflare": "^5.20260828.0-alpha",
     "wrangler": "^4.110.0"
   }
 }

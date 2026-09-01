@@ -1,0 +1,8 @@
+message=$(head -n 1 "$1")
+pattern='^(web|api|mobile|general)\((feat|fix|bugfix|refactor|docs|test|style|perf|build|ci|chore|revert)\)!?: .+'
+
+if ! printf '%s\n' "$message" | grep -Eq "$pattern"; then
+  echo 'Commit message must match: (web|api|mobile|general)(type): <message>'
+  echo 'Example: api(bugfix): reject stale task revisions'
+  exit 1
+fi

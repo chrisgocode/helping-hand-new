@@ -8,11 +8,18 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
     "dev": "turbo dev",
     "dev:api": "turbo dev --filter=@helping-hand/api",
-    "dev:web": "turbo dev --filter=@helping-hand/web"
+    "dev:web": "turbo dev --filter=@helping-hand/web",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
+    "husky": "^9.1.7",
     "turbo": "^2.10.12"
   }
 }

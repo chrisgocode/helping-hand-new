@@ -1,13 +1,41 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "helping-hand",
-	"compatibility_date": "2025-08-03",
-	"main": "./src/index.ts",
-	"d1_databases": [
-		{
-			"binding": "database",
-			"database_name": "helping-hand-db",
-			"database_id": "f928870b-79f4-48bc-9205-02b7ec052ad0"
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "helping-hand",
+  "compatibility_date": "2025-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./src/index.ts",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "ratelimits": [
+    {
+      "name": "MEMBER_API_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 600, "period": 60 }
+    },
+    {
+      "name": "GUEST_API_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 60, "period": 60 }
+    },
+    {
+      "name": "MEMBER_AI_RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": { "limit": 60, "period": 60 }
+    },
+    {
+      "name": "GUEST_AI_RATE_LIMITER",
+      "namespace_id": "1004",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "database",
+      "database_name": "helping-hand-db",
+      "database_id": "f928870b-79f4-48bc-9205-02b7ec052ad0",
+      "migrations_dir": "src/migrations"
+    }
+  ]
 }
