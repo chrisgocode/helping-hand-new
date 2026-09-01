@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test'
 import app from './app'
 
+const developmentEnv = { APP_ENV: 'development' }
+
 test('publishes a recursive TaskNode component in the OpenAPI document', async () => {
-  const response = await app.request('/openapi.json')
+  const response = await app.request('/openapi.json', {}, developmentEnv)
   const document: unknown = await response.json()
 
   expect(response.status).toBe(200)
@@ -26,7 +28,7 @@ test('publishes a recursive TaskNode component in the OpenAPI document', async (
 })
 
 test('publishes every task operation with stable operation IDs', async () => {
-  const response = await app.request('/openapi.json')
+  const response = await app.request('/openapi.json', {}, developmentEnv)
   const document: unknown = await response.json()
 
   expect(document).toMatchObject({
@@ -52,7 +54,7 @@ test('publishes every task operation with stable operation IDs', async () => {
 })
 
 test('publishes authentication, request-body, error, and empty-response contracts', async () => {
-  const response = await app.request('/openapi.json')
+  const response = await app.request('/openapi.json', {}, developmentEnv)
   const document: unknown = await response.json()
 
   expect(document).toMatchObject({
@@ -90,4 +92,24 @@ test('publishes authentication, request-body, error, and empty-response contract
       },
     },
   })
+})
+
+test('serves the interactive API reference', async () => {
+  const response = await app.request('/docs', {}, developmentEnv)
+  const html = await response.text()
+
+  expect(response.status).toBe(200)
+  expect(response.headers.get('content-type')).toStartWith('text/html')
+  expect(html).toContain('/openapi.json')
+})
+
+test('does not expose API documentation outside development', async () => {
+  const env = { APP_ENV: 'production' }
+  const [documentResponse, docsResponse] = await Promise.all([
+    app.request('/openapi.json', {}, env),
+    app.request('/docs', {}, env),
+  ])
+
+  expect(documentResponse.status).toBe(404)
+  expect(docsResponse.status).toBe(404)
 })

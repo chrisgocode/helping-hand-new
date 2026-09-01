@@ -17,6 +17,7 @@
     "@helping-hand/schemas": "workspace:*",
     "@hono/zod-openapi": "1.6.1",
     "@openrouter/sdk": "^1.2.86",
+    "@scalar/hono-api-reference": "0.12.0",
     "better-auth": "^1.7.2",
     "hono": "^4.13.5",
     "pino": "^10.3.1",

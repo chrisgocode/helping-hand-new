@@ -4,7 +4,7 @@ import type { RateLimitBindings } from '../middleware/rate-limit'
 import type { TaskAiBindings, TaskAiFailureKind } from '../services/task-ai'
 
 export type TaskRouteEnv = {
-  Bindings: AuthBindings & TaskAiBindings & RateLimitBindings
+  Bindings: AuthBindings & TaskAiBindings & RateLimitBindings & { APP_ENV?: string }
   Variables: {
     logger: Logger
     requestId: string

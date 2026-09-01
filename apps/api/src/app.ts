@@ -1,6 +1,8 @@
 import '@hono/zod-openapi'
 import { OpenAPIHono } from '@hono/zod-openapi'
+import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
+import { createMiddleware } from 'hono/factory'
 import { requestId } from 'hono/request-id'
 import { createAuth } from './auth'
 import { logger } from './lib/logger'
@@ -29,6 +31,10 @@ const app = new OpenAPIHono<TaskRouteEnv>({
   },
 })
 
+const developmentOnly = createMiddleware<TaskRouteEnv>((c, next) =>
+  c.env.APP_ENV === 'development' ? next() : Promise.resolve(c.notFound()),
+)
+
 app.use('*', requestId({ generator: (c) => c.req.header('cf-ray') ?? crypto.randomUUID() }))
 app.use('*', withLogger)
 app.use('/api/*', (c, next) => cors({ origin: c.env.TRUSTED_ORIGIN, credentials: true })(c, next))
@@ -36,7 +42,10 @@ app.use('/api/*', resolveAuth, rateLimit('regular'))
 app.all('/api/auth/*', (c) => createAuth(c.env).handler(c.req.raw))
 app.route('/api/tasks', taskRoutes)
 
+app.use('/openapi.json', developmentOnly)
+app.use('/docs', developmentOnly)
 app.doc('/openapi.json', openApiConfig)
+app.get('/docs', Scalar({ url: '/openapi.json' }))
 app.get('/', (c) => c.json({ message: 'Helping Hand API' }))
 app.onError((_error, c) => {
   logger.error({
