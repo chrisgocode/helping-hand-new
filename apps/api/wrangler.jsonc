@@ -2,7 +2,6 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "helping-hand",
   "compatibility_date": "2025-08-03",
-  "compatibility_flags": ["nodejs_compat"],
   "main": "./src/index.ts",
   "observability": {
     "enabled": true,
