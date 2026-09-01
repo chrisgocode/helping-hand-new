@@ -1,0 +1,22 @@
+{
+  "name": "@helping-hand/api-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "generate": "openapi-typescript ../../apps/api/openapi.json -o src/generated.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.15.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "~6.0.2"
+  }
+}

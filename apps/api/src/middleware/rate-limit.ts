@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory'
 import type { Logger } from 'pino'
+import { problem } from '../lib/problem'
 
 export type RateLimitBindings = {
   MEMBER_API_RATE_LIMITER: RateLimit
@@ -40,7 +41,16 @@ export function rateLimit(policy: keyof typeof bindings) {
         retryAfter: 60,
       })
       c.header('Retry-After', '60')
-      return c.json({ error: 'Too many requests' }, 429)
+      return problem(
+        c,
+        {
+          type: 'urn:helping-hand:problem:rate-limited',
+          title: 'Too many requests',
+          detail: 'Too many requests. Try again later.',
+          retryable: true,
+        },
+        429,
+      )
     }
 
     await next()

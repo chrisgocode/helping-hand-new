@@ -12,6 +12,7 @@ export function logAiRequest(operation: 'breakdown' | 'durations' | 'order') {
     const startedAt = performance.now()
     await next()
     const failureKind = c.get('aiFailureKind')
+    if (!c.get('aiRequestObserved') && !failureKind) return
     const fields = {
       event: 'ai_request_completed',
       operation,

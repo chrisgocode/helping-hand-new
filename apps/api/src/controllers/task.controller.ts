@@ -1,5 +1,14 @@
-import type { Context, ErrorHandler, Handler } from 'hono'
+import type { RouteHandler } from '@hono/zod-openapi'
+import type { Context, ErrorHandler } from 'hono'
 import { problem } from '../lib/problem'
+import type {
+  deleteTaskTreeRoute,
+  getTaskTreesRoute,
+  proposeTaskBreakdownRoute,
+  proposeTaskDurationsRoute,
+  proposeTaskOrderRoute,
+  saveTaskTreeRoute,
+} from '../schemas/task.schema'
 import { TaskService, TaskServiceError } from '../services/task.service'
 import { TaskAi, TaskAiError, type TaskAiFailureKind } from '../services/task-ai'
 import type { TaskRouteEnv } from '../types/task'
@@ -50,38 +59,59 @@ function taskService(c: Context<TaskRouteEnv>) {
   })
 }
 
-export const getTaskTrees: Handler<TaskRouteEnv> = async (c) =>
-  c.json(await taskService(c).getTaskTrees(c.get('authenticatedUserId')))
+export const getTaskTrees: RouteHandler<typeof getTaskTreesRoute, TaskRouteEnv> = async (c) =>
+  c.json(await taskService(c).getTaskTrees(c.get('authenticatedUserId')), 200)
 
-export const saveTaskTree: Handler<TaskRouteEnv> = async (c) => {
-  const draft = c.get('saveTaskInput')
-  if (draft.id !== c.get('rootId'))
-    return c.json({ error: 'Route and task tree IDs must match' }, 400)
-  return c.json(await taskService(c).saveTaskTree(c.get('authenticatedUserId'), draft))
+export const saveTaskTree: RouteHandler<typeof saveTaskTreeRoute, TaskRouteEnv> = async (c) => {
+  const draft = c.req.valid('json')
+  const { rootId } = c.req.valid('param')
+  if (draft.id !== rootId) {
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:validation',
+        title: 'Invalid request',
+        detail: 'Route and task tree IDs must match.',
+        retryable: false,
+      },
+      400,
+    )
+  }
+  return c.json(await taskService(c).saveTaskTree(c.get('authenticatedUserId'), draft), 200)
 }
 
-export const deleteTaskTree: Handler<TaskRouteEnv> = async (c) => {
+export const deleteTaskTree: RouteHandler<typeof deleteTaskTreeRoute, TaskRouteEnv> = async (c) => {
+  const { rootId } = c.req.valid('param')
   await taskService(c).deleteTaskTree(
     c.get('authenticatedUserId'),
-    c.get('rootId'),
-    c.get('deleteTaskInput').revision,
+    rootId,
+    c.req.valid('json').revision,
   )
   return c.body(null, 204)
 }
 
-export const proposeBreakdown: Handler<TaskRouteEnv> = async (c) => {
-  const { draft, taskId, detail } = c.get('breakdownProposalInput')
-  return c.json(await taskService(c).proposeBreakdown(c.get('userId'), draft, taskId, detail))
+export const proposeBreakdown: RouteHandler<
+  typeof proposeTaskBreakdownRoute,
+  TaskRouteEnv
+> = async (c) => {
+  c.set('aiRequestObserved', true)
+  const { draft, taskId, detail } = c.req.valid('json')
+  return c.json(await taskService(c).proposeBreakdown(c.get('userId'), draft, taskId, detail), 200)
 }
 
-export const proposeDurations: Handler<TaskRouteEnv> = async (c) => {
-  const { draft, taskId } = c.get('taskProposalInput')
-  return c.json(await taskService(c).proposeDurations(c.get('userId'), draft, taskId))
+export const proposeDurations: RouteHandler<
+  typeof proposeTaskDurationsRoute,
+  TaskRouteEnv
+> = async (c) => {
+  c.set('aiRequestObserved', true)
+  const { draft, taskId } = c.req.valid('json')
+  return c.json(await taskService(c).proposeDurations(c.get('userId'), draft, taskId), 200)
 }
 
-export const proposeOrder: Handler<TaskRouteEnv> = async (c) => {
-  const { draft, taskId } = c.get('taskProposalInput')
-  return c.json(await taskService(c).proposeOrder(c.get('userId'), draft, taskId))
+export const proposeOrder: RouteHandler<typeof proposeTaskOrderRoute, TaskRouteEnv> = async (c) => {
+  c.set('aiRequestObserved', true)
+  const { draft, taskId } = c.req.valid('json')
+  return c.json(await taskService(c).proposeOrder(c.get('userId'), draft, taskId), 200)
 }
 
 export const handleTaskError: ErrorHandler<TaskRouteEnv> = (error, c) => {
@@ -101,10 +131,61 @@ export const handleTaskError: ErrorHandler<TaskRouteEnv> = (error, c) => {
       code: 'internal_error',
       route: c.req.routePath,
     })
-    return c.json({ error: 'Internal server error' }, 500)
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:internal-error',
+        title: 'Internal server error',
+        detail: 'The request could not be completed.',
+        retryable: false,
+      },
+      500,
+    )
   }
-  if (error.code === 'unauthorized') return c.json({ error: error.message }, 401)
-  if (error.code === 'invalid') return c.json({ error: error.message }, 400)
-  if (error.code === 'not_found') return c.json({ error: error.message }, 404)
-  return c.json({ error: error.message }, 409)
+  if (error.code === 'unauthorized') {
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:unauthorized',
+        title: 'Authentication required',
+        detail: error.message,
+        retryable: false,
+      },
+      401,
+    )
+  }
+  if (error.code === 'invalid') {
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:validation',
+        title: 'Invalid request',
+        detail: error.message,
+        retryable: false,
+      },
+      400,
+    )
+  }
+  if (error.code === 'not_found') {
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:not-found',
+        title: 'Task not found',
+        detail: error.message,
+        retryable: false,
+      },
+      404,
+    )
+  }
+  return problem(
+    c,
+    {
+      type: 'urn:helping-hand:problem:conflict',
+      title: 'Task conflict',
+      detail: error.message,
+      retryable: false,
+    },
+    409,
+  )
 }

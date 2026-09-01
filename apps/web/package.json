@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@helping-hand/api-client": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

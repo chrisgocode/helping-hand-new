@@ -9,11 +9,13 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:local": "wrangler d1 migrations apply helping-hand-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply helping-hand-db --remote",
+    "openapi:generate": "bun src/scripts/generate-openapi.ts",
     "test": "bun test",
     "test:ai:live": "RUN_LIVE_AI_TESTS=1 bun --env-file=.dev.vars test src/services/task-ai.live.test.ts"
   },
   "dependencies": {
     "@helping-hand/schemas": "workspace:*",
+    "@hono/zod-openapi": "1.6.1",
     "@openrouter/sdk": "^1.2.86",
     "better-auth": "^1.7.2",
     "hono": "^4.13.5",

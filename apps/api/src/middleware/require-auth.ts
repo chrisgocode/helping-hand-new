@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory'
 import { createAuth } from '../auth'
+import { problem } from '../lib/problem'
 import type { TaskRouteEnv } from '../types/task'
 
 export const resolveAuth = createMiddleware<TaskRouteEnv>(async (c, next) => {
@@ -10,7 +11,18 @@ export const resolveAuth = createMiddleware<TaskRouteEnv>(async (c, next) => {
 
 export const requireAuth = createMiddleware<TaskRouteEnv>(async (c, next) => {
   const userId = c.get('userId')
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401)
+  if (!userId) {
+    return problem(
+      c,
+      {
+        type: 'urn:helping-hand:problem:unauthorized',
+        title: 'Authentication required',
+        detail: 'Sign in to continue.',
+        retryable: false,
+      },
+      401,
+    )
+  }
   c.set('authenticatedUserId', userId)
   await next()
 })

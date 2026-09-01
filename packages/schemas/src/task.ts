@@ -33,7 +33,34 @@ export const taskTreeDraftSchema = z.strictObject({
 })
 
 export type TaskTreeDraft = z.infer<typeof taskTreeDraftSchema>
-export type TaskTree = Omit<TaskTreeDraft, 'revision'> & { revision: number }
+export const taskTreeSchema = taskTreeDraftSchema.extend({
+  revision: z.number().int().nonnegative(),
+})
+export const taskTreeListSchema = z.array(taskTreeSchema)
+export type TaskTree = z.infer<typeof taskTreeSchema>
+
+export const taskDetailSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+])
+export const deleteTaskInputSchema = z.strictObject({
+  revision: z.number().int().nonnegative(),
+})
+export const taskProposalInputSchema = z.strictObject({
+  draft: taskTreeDraftSchema,
+  taskId: z.uuid(),
+})
+export const breakdownProposalInputSchema = taskProposalInputSchema.extend({
+  detail: taskDetailSchema,
+})
+
+export type TaskDetail = z.infer<typeof taskDetailSchema>
+export type DeleteTaskInput = z.infer<typeof deleteTaskInputSchema>
+export type TaskProposalInput = z.infer<typeof taskProposalInputSchema>
+export type BreakdownProposalInput = z.infer<typeof breakdownProposalInputSchema>
 
 export const taskBreakdownProposalSchema = z.strictObject({
   taskId: z.uuid(),

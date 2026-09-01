@@ -109,7 +109,7 @@ describe('task HTTP routes', () => {
   test('requires authentication', async () => {
     const response = await app.request(
       '/api/tasks',
-      {},
+      { headers: { 'cf-ray': 'auth-request-id' } },
       {
         database,
         BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
@@ -119,9 +119,19 @@ describe('task HTTP routes', () => {
         ...rateLimiters(),
       },
     )
+    const body: unknown = await response.json()
 
     expect(response.status).toBe(401)
-    expect(response.headers.get('x-request-id')).toBeTruthy()
+    expect(response.headers.get('x-request-id')).toBe('auth-request-id')
+    expect(response.headers.get('content-type')).toStartWith('application/problem+json')
+    expect(body).toEqual({
+      type: 'urn:helping-hand:problem:unauthorized',
+      title: 'Authentication required',
+      status: 401,
+      detail: 'Sign in to continue.',
+      instance: 'urn:request:auth-request-id',
+      retryable: false,
+    })
   })
 
   test('loads task trees for the authenticated user', async () => {
@@ -162,6 +172,12 @@ describe('task HTTP routes', () => {
       env,
     )
     expect(invalidResponse.status).toBe(400)
+    expect(invalidResponse.headers.get('content-type')).toStartWith('application/problem+json')
+    expect(await invalidResponse.json()).toMatchObject({
+      type: 'urn:helping-hand:problem:validation',
+      status: 400,
+      retryable: false,
+    })
 
     const saveResponse = await app.request(
       `/api/tasks/${rootId}`,

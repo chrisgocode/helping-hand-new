@@ -6,7 +6,14 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/.turbo", "!bun.lock", "!apps/api/worker-configuration.d.ts"]
+    "includes": [
+      "**",
+      "!**/.turbo",
+      "!bun.lock",
+      "!apps/api/openapi.json",
+      "!apps/api/worker-configuration.d.ts",
+      "!packages/api-client/src/generated.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

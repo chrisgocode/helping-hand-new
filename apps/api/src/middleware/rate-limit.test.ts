@@ -92,6 +92,14 @@ describe('rateLimit', () => {
 
     expect(response.status).toBe(429)
     expect(response.headers.get('retry-after')).toBe('60')
-    expect(body).toEqual({ error: 'Too many requests' })
+    expect(response.headers.get('content-type')).toStartWith('application/problem+json')
+    expect(body).toEqual({
+      type: 'urn:helping-hand:problem:rate-limited',
+      title: 'Too many requests',
+      status: 429,
+      detail: 'Too many requests. Try again later.',
+      instance: 'urn:request:request-1',
+      retryable: true,
+    })
   })
 })

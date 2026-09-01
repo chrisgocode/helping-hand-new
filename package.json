@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "api:generate": "bun run --cwd apps/api openapi:generate && bun run --cwd packages/api-client generate",
+    "api:check": "bun run api:generate && git diff --exit-code -- apps/api/openapi.json packages/api-client/src/generated.ts",
     "check": "biome check .",
     "check:write": "biome check --write .",
     "dev": "turbo dev",
