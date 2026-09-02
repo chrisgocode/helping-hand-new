@@ -56,7 +56,11 @@ describe('useTaskEditor', () => {
     })
 
     await act(() => result.current.ai.generateDurations(existing.id))
-    saveDraft.mockImplementationOnce(async (draft) => ({ ...draft, revision: 3 }))
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 3,
+    }))
     await act(result.current.save)
 
     expect(proposeDurations).toHaveBeenCalledWith(existing, existing.id)
@@ -236,7 +240,11 @@ describe('useTaskEditor', () => {
 
     expect(result.current.isDirty).toBe(false)
     act(() => result.current.updateTitle(existing.id, 'Make tea'))
-    saveDraft.mockImplementationOnce(async (draft) => ({ ...draft, revision: 5 }))
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 5,
+    }))
 
     await act(result.current.save)
 
@@ -247,7 +255,11 @@ describe('useTaskEditor', () => {
   it('adopts the saved tree as its new baseline', async () => {
     const { result } = renderHook(useTaskEditor)
     act(() => result.current.updateTitle(result.current.draft.id, 'Make coffee'))
-    saveDraft.mockImplementationOnce(async (draft) => ({ ...draft, revision: 0 }))
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 0,
+    }))
 
     await act(result.current.save)
 

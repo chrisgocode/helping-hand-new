@@ -192,9 +192,9 @@ describe('task draft', () => {
       firstId,
     ])
     expect(moved.children[2].children).toHaveLength(1)
-    expect(() =>
-      placeTask(nested, nested.children[0].children[0].id, thirdId, 'before'),
-    ).toThrow('same level')
+    expect(() => placeTask(nested, nested.children[0].children[0].id, thirdId, 'before')).toThrow(
+      'same level',
+    )
   })
 
   it('applies an exact proposed sibling order while preserving descendants', () => {

@@ -115,12 +115,19 @@ function SortableTaskNode({
   onPrioritize,
 }: TaskNodeEditorProps) {
   const actionMenu = useRef<HTMLDetailsElement>(null)
-  const { attributes, isDragging, listeners, setActivatorNodeRef, setNodeRef, transform, transition } =
-    useSortable({
-      id: node.id,
-      disabled: root || disabled,
-      data: { parentId, index },
-    })
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: node.id,
+    disabled: root || disabled,
+    data: { parentId, index },
+  })
   const name = node.title.trim() || 'untitled task'
   const canAdd = depth < TASK_TREE_LIMITS.maxDepth && taskCount < TASK_TREE_LIMITS.maxTasksPerRoot
   const actionable = node.children.length === 0
@@ -171,7 +178,10 @@ function SortableTaskNode({
       className={`task-node${root ? ' root-task-node' : ''}${isDragging ? ' is-dragging' : ''}`}
       style={style}
     >
-      <fieldset className={`task-node-row${root ? ' root-task-row' : ''}`} aria-label={`${name} task`}>
+      <fieldset
+        className={`task-node-row${root ? ' root-task-row' : ''}`}
+        aria-label={`${name} task`}
+      >
         {!root && (
           <button
             type="button"

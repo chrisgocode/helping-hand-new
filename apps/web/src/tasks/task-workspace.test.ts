@@ -33,6 +33,7 @@ describe('task workspace', () => {
         id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',
         title: 'Make coffee',
         durationSeconds: null,
+        categoryId: null,
         revision: 0,
         children: [],
       },
@@ -83,7 +84,7 @@ describe('task workspace', () => {
       revision: null,
       children: [],
     }
-    const saved = { ...draft, revision: 0 }
+    const saved = { ...draft, categoryId: null, revision: 0 }
     putTask.mockResolvedValueOnce({
       data: saved,
       response: new Response(null, { status: 200 }),

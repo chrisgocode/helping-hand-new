@@ -60,6 +60,7 @@ const savedTask = {
   id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',
   title: 'Make coffee',
   durationSeconds: null,
+  categoryId: null,
   revision: 2,
   children: [
     {
@@ -86,7 +87,11 @@ describe('TaskEditorPage', () => {
   })
 
   it('creates and saves a recursive task tree', async () => {
-    saveDraft.mockImplementationOnce(async (draft) => ({ ...draft, revision: 0 }))
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 0,
+    }))
     const user = userEvent.setup()
     renderEditor()
 
@@ -221,7 +226,11 @@ describe('TaskEditorPage', () => {
 
   it('loads and saves an existing tree at its current revision', async () => {
     listTrees.mockResolvedValueOnce([savedTask])
-    saveDraft.mockImplementationOnce(async (draft) => ({ ...draft, revision: 3 }))
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 3,
+    }))
     const user = userEvent.setup()
     renderSavedEditor()
 

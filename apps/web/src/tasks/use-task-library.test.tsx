@@ -20,6 +20,7 @@ describe('useTaskLibrary', () => {
         id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',
         title: 'Make coffee',
         durationSeconds: null,
+        categoryId: null,
         revision: 0,
         children: [],
       },
