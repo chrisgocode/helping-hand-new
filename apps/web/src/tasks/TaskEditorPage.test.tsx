@@ -108,6 +108,20 @@ describe('TaskEditorPage', () => {
     )
   })
 
+  it('closes a task action menu when clicking elsewhere', async () => {
+    const user = userEvent.setup()
+    renderEditor()
+
+    await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    const trigger = screen.getByLabelText('Actions for Make coffee')
+    await user.click(trigger)
+    expect((trigger.closest('details') as HTMLDetailsElement).open).toBe(true)
+
+    await user.click(screen.getByRole('heading', { name: 'Build clear guidance.' }))
+
+    expect((trigger.closest('details') as HTMLDetailsElement).open).toBe(false)
+  })
+
   it('generates and appends an AI breakdown without saving it', async () => {
     proposeBreakdown.mockImplementationOnce(async (_draft, taskId) => ({
       taskId,

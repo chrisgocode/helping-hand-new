@@ -230,37 +230,6 @@ export function deleteTask(draft: TaskTreeDraft, taskId: string): TaskTreeDraft 
   return next
 }
 
-export function moveTask(
-  draft: TaskTreeDraft,
-  taskId: string,
-  direction: 'up' | 'down',
-): TaskTreeDraft {
-  if (draft.id === taskId) return draft
-
-  let found = false
-  const visit = (task: TaskNode): TaskNode => {
-    const index = task.children.findIndex((child) => child.id === taskId)
-    if (index !== -1) {
-      found = true
-      const destination = direction === 'up' ? index - 1 : index + 1
-      if (destination < 0 || destination >= task.children.length) return task
-
-      const children = [...task.children]
-      ;[children[index], children[destination]] = [children[destination], children[index]]
-      return { ...task, children }
-    }
-
-    const children = task.children.map(visit)
-    return children.some((child, childIndex) => child !== task.children[childIndex])
-      ? { ...task, children }
-      : task
-  }
-
-  const next = visit(draft) as TaskTreeDraft
-  if (!found) throw new TaskDraftError('Task does not exist in this draft.')
-  return next
-}
-
 export function placeTask(
   draft: TaskTreeDraft,
   taskId: string,

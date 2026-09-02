@@ -123,7 +123,6 @@ function Editor({ initialDraft, reload }: EditorProps) {
           parentId={null}
           depth={1}
           index={0}
-          siblingCount={1}
           taskCount={taskCount}
           root
           disabled={busy}
@@ -133,7 +132,6 @@ function Editor({ initialDraft, reload }: EditorProps) {
           onDurationChange={editor.updateDuration}
           onAddChild={editor.addChild}
           onDelete={editor.removeTask}
-          onMove={editor.reorderTask}
           onPlace={editor.placeTask}
           onBreakdown={(taskId) => setBreakdown({ taskId, detail: 3 })}
           onEstimateDuration={(taskId) => void editor.ai.generateDurations(taskId)}

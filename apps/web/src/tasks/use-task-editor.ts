@@ -7,7 +7,6 @@ import {
   applyTaskOrder,
   createTaskDraft,
   deleteTask,
-  moveTask,
   placeTask,
   type TaskBreakdownProposal,
   TaskDraftError,
@@ -141,11 +140,6 @@ export function useTaskEditor(initialDraft?: TaskTreeDraft) {
     (taskId: string) => changeDraft((draft) => deleteTask(draft, taskId)),
     [changeDraft],
   )
-  const reorderTask = useCallback(
-    (taskId: string, direction: 'up' | 'down') =>
-      changeDraft((draft) => moveTask(draft, taskId, direction)),
-    [changeDraft],
-  )
   const placeTaskAt = useCallback(
     (taskId: string, targetId: string, placement: 'before' | 'after') =>
       changeDraft((draft) => placeTask(draft, taskId, targetId, placement)),
@@ -266,7 +260,6 @@ export function useTaskEditor(initialDraft?: TaskTreeDraft) {
     updateTitle,
     addChild,
     removeTask,
-    reorderTask,
     placeTask: placeTaskAt,
     updateDuration,
     ai: {

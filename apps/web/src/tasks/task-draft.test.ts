@@ -8,7 +8,6 @@ import {
   createTaskDraft,
   deleteTask,
   getTaskDurationSeconds,
-  moveTask,
   placeTask,
   updateTaskDuration,
   updateTaskTitle,
@@ -174,20 +173,6 @@ describe('task draft', () => {
     const actionable = deleteTask(summary, summary.children[0].id)
 
     expect(actionable).toMatchObject({ children: [], durationSeconds: null })
-  })
-
-  it('reorders siblings while preserving their descendants', () => {
-    const draft = namedDraft()
-    const firstAdded = addChildTask(draft, draft.id)
-    const firstId = firstAdded.children[0].id
-    const secondAdded = addChildTask(firstAdded, draft.id)
-    const secondId = secondAdded.children[1].id
-    const nested = addChildTask(secondAdded, firstId)
-
-    const moved = moveTask(nested, secondId, 'up')
-
-    expect(moved.children.map(({ id }) => id)).toEqual([secondId, firstId])
-    expect(moved.children[1].children).toHaveLength(1)
   })
 
   it('places a sibling at any position while preserving its descendants', () => {

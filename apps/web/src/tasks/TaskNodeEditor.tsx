@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { TASK_TREE_LIMITS } from '@helping-hand/schemas/task-limits'
-import { type CSSProperties, useRef } from 'react'
+import { type CSSProperties, useEffect, useRef } from 'react'
 import { getTaskDurationSeconds, type TaskNode } from './task-draft'
 import type { AiProposalState } from './use-task-editor'
 
@@ -24,7 +24,6 @@ type TaskNodeEditorProps = {
   parentId: string | null
   depth: number
   index: number
-  siblingCount: number
   taskCount: number
   root?: boolean
   disabled: boolean
@@ -34,7 +33,6 @@ type TaskNodeEditorProps = {
   onDurationChange: (taskId: string, durationSeconds: number | null) => void
   onAddChild: (parentId: string) => void
   onDelete: (taskId: string) => void
-  onMove: (taskId: string, direction: 'up' | 'down') => void
   onPlace: (taskId: string, targetId: string, placement: 'before' | 'after') => void
   onBreakdown: (taskId: string) => void
   onEstimateDuration: (taskId: string) => void
@@ -68,6 +66,16 @@ export function TaskNodeEditor(props: TaskNodeEditorProps) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  useEffect(() => {
+    const closeOpenMenus = (event: PointerEvent) => {
+      document.querySelectorAll<HTMLDetailsElement>('.task-action-menu[open]').forEach((menu) => {
+        if (!menu.contains(event.target as Node | null)) menu.open = false
+      })
+    }
+    document.addEventListener('pointerdown', closeOpenMenus)
+    return () => document.removeEventListener('pointerdown', closeOpenMenus)
+  }, [])
+
   function finishDrag({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return
     const source = active.data.current
@@ -92,7 +100,6 @@ function SortableTaskNode({
   parentId,
   depth,
   index,
-  siblingCount,
   taskCount,
   root = false,
   disabled,
@@ -102,7 +109,6 @@ function SortableTaskNode({
   onDurationChange,
   onAddChild,
   onDelete,
-  onMove,
   onPlace,
   onBreakdown,
   onEstimateDuration,
@@ -241,33 +247,15 @@ function SortableTaskNode({
               + Add subtask
             </button>
             {!root && (
-              <>
-                <button
-                  type="button"
-                  disabled={disabled || index === 0}
-                  onClick={() => runAction(() => onMove(node.id, 'up'))}
-                  aria-label={`Move ${name} up`}
-                >
-                  ↑ Move up
-                </button>
-                <button
-                  type="button"
-                  disabled={disabled || index === siblingCount - 1}
-                  onClick={() => runAction(() => onMove(node.id, 'down'))}
-                  aria-label={`Move ${name} down`}
-                >
-                  ↓ Move down
-                </button>
-                <button
-                  className="danger-action"
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => runAction(remove)}
-                  aria-label={`Delete ${name}`}
-                >
-                  × Delete
-                </button>
-              </>
+              <button
+                className="danger-action"
+                type="button"
+                disabled={disabled}
+                onClick={() => runAction(remove)}
+                aria-label={`Delete ${name}`}
+              >
+                × Delete
+              </button>
             )}
           </div>
         </details>
@@ -332,7 +320,6 @@ function SortableTaskNode({
                   parentId={node.id}
                   depth={depth + 1}
                   index={childIndex}
-                  siblingCount={node.children.length}
                   taskCount={taskCount}
                   disabled={disabled}
                   aiDisabled={aiDisabled}
@@ -341,7 +328,6 @@ function SortableTaskNode({
                   onDurationChange={onDurationChange}
                   onAddChild={onAddChild}
                   onDelete={onDelete}
-                  onMove={onMove}
                   onPlace={onPlace}
                   onBreakdown={onBreakdown}
                   onEstimateDuration={onEstimateDuration}
