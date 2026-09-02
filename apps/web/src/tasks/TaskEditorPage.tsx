@@ -16,7 +16,7 @@ type EditorProps = {
 function Editor({ initialDraft, reload }: EditorProps) {
   const navigate = useNavigate()
   const editor = useTaskEditor(initialDraft)
-  const [breakdown, setBreakdown] = useState<{ taskId: string; detail: TaskDetail } | null>(null)
+  const [breakdownDetail, setBreakdownDetail] = useState<TaskDetail>(3)
   const allowNavigation = useRef(false)
   const blocker = useBlocker(
     useCallback(() => editor.isDirty && !allowNavigation.current, [editor.isDirty]),
@@ -92,20 +92,6 @@ function Editor({ initialDraft, reload }: EditorProps) {
     void reload()
   }, [editor.isDirty, reload])
 
-  const generateBreakdown = useCallback(async () => {
-    if (!breakdown) return
-    if ((await editor.ai.breakDown(breakdown.taskId, breakdown.detail)) === 'applied') {
-      setBreakdown(null)
-    }
-  }, [breakdown, editor.ai])
-
-  const retryAiProposal = useCallback(async () => {
-    const failedAction = editor.ai.state.status === 'failed' ? editor.ai.state.action : null
-    if ((await editor.ai.retry()) === 'applied' && failedAction === 'breakdown') {
-      setBreakdown(null)
-    }
-  }, [editor.ai])
-
   return (
     <main className="task-page editor-page">
       <header className="editor-heading">
@@ -118,6 +104,33 @@ function Editor({ initialDraft, reload }: EditorProps) {
       </header>
 
       <section className="editor-workspace" aria-label="Task tree editor">
+        <div className="breakdown-detail-setting">
+          <div>
+            <strong>Step detail</strong>
+            <span className="detail-setting-description" aria-live="polite">
+              {editor.ai.state.status === 'running' && editor.ai.state.action === 'breakdown'
+                ? 'Generating subtasks…'
+                : 'Used for every AI breakdown in this task tree.'}
+            </span>
+          </div>
+          <label className="detail-slider" htmlFor="breakdown-detail">
+            <span>Simple</span>
+            <input
+              id="breakdown-detail"
+              aria-label="Step detail"
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={breakdownDetail}
+              disabled={aiRunning}
+              onChange={(event) => setBreakdownDetail(Number(event.target.value) as TaskDetail)}
+            />
+            <span>Detailed</span>
+            <output htmlFor="breakdown-detail">{breakdownDetail}</output>
+          </label>
+        </div>
+
         <TaskNodeEditor
           node={editor.draft}
           parentId={null}
@@ -126,74 +139,18 @@ function Editor({ initialDraft, reload }: EditorProps) {
           taskCount={taskCount}
           root
           disabled={busy}
-          aiDisabled={breakdown !== null || aiRunning || Boolean(editor.validationIssue)}
+          aiDisabled={aiRunning || Boolean(editor.validationIssue)}
           aiState={editor.ai.state}
           onTitleChange={editor.updateTitle}
           onDurationChange={editor.updateDuration}
           onAddChild={editor.addChild}
           onDelete={editor.removeTask}
           onPlace={editor.placeTask}
-          onBreakdown={(taskId) => setBreakdown({ taskId, detail: 3 })}
+          onBreakdown={(taskId) => void editor.ai.breakDown(taskId, breakdownDetail)}
           onEstimateDuration={(taskId) => void editor.ai.generateDurations(taskId)}
           onPrioritize={(taskId) => void editor.ai.optimizeOrder(taskId)}
         />
       </section>
-
-      {breakdown && (
-        <section className="breakdown-panel" aria-labelledby="breakdown-heading">
-          <div className="breakdown-heading">
-            <div>
-              <p className="eyebrow">AI breakdown</p>
-              <h2 id="breakdown-heading">Break this task into subtasks</h2>
-            </div>
-            <button type="button" disabled={aiRunning} onClick={() => setBreakdown(null)}>
-              Cancel
-            </button>
-          </div>
-
-          <label className="detail-control" htmlFor="breakdown-detail">
-            <span>Step detail</span>
-            <input
-              id="breakdown-detail"
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={breakdown.detail}
-              disabled={aiRunning}
-              onChange={(event) =>
-                setBreakdown((current) =>
-                  current
-                    ? { ...current, detail: Number(event.target.value) as TaskDetail }
-                    : current,
-                )
-              }
-            />
-            <output htmlFor="breakdown-detail">{breakdown.detail}</output>
-          </label>
-          <div className="detail-labels" aria-hidden="true">
-            <span>Simple</span>
-            <span>Detailed</span>
-          </div>
-
-          {editor.ai.state.status === 'running' && editor.ai.state.action === 'breakdown' && (
-            <p className="breakdown-loading" aria-live="polite">
-              Generating subtasks…
-            </p>
-          )}
-
-          <div className="breakdown-actions">
-            <button
-              className="primary-button"
-              type="button"
-              disabled={aiRunning}
-              onClick={() => void generateBreakdown()}
-            >
-              Generate subtasks
-            </button>
-          </div>
-        </section>
-      )}
 
       {editor.ai.state.status === 'failed' && editor.ai.state.recovery !== 'sign-in' && (
         <div className="notice error-notice editor-notice" role="alert">
@@ -211,7 +168,7 @@ function Editor({ initialDraft, reload }: EditorProps) {
             </button>
           ) : (
             editor.ai.state.recovery === 'retry' && (
-              <button type="button" onClick={() => void retryAiProposal()}>
+              <button type="button" onClick={() => void editor.ai.retry()}>
                 Try again
               </button>
             )

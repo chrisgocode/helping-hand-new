@@ -221,7 +221,7 @@ function SortableTaskNode({
                 onClick={() => runAction(() => onBreakdown(node.id))}
                 aria-label={`Break down ${name} with AI`}
               >
-                ✨ Break down
+                Break down task
               </button>
             )}
             {node.children.length >= 2 && (

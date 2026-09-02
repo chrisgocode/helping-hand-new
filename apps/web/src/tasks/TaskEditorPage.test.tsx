@@ -134,15 +134,15 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
-    await openTaskActions(user, 'Make coffee')
-    await user.click(screen.getByRole('button', { name: 'Break down Make coffee with AI' }))
     fireEvent.change(screen.getByRole('slider', { name: /Step detail/ }), {
       target: { value: '4' },
     })
-    await user.click(screen.getByRole('button', { name: 'Generate subtasks' }))
+    await openTaskActions(user, 'Make coffee')
+    await user.click(screen.getByRole('button', { name: 'Break down Make coffee with AI' }))
 
     expect(await screen.findByDisplayValue('Get a mug')).toBeTruthy()
     expect(screen.getByDisplayValue('Start the coffee maker')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Generate subtasks' })).toBeNull()
     expect(screen.queryByText('AI proposal')).toBeNull()
     expect(proposeBreakdown).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Make coffee', children: [] }),
@@ -160,7 +160,6 @@ describe('TaskEditorPage', () => {
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
     await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Break down Make coffee with AI' }))
-    await user.click(screen.getByRole('button', { name: 'Generate subtasks' }))
 
     expect((await screen.findByRole('alert')).textContent).toContain('AI generation took too long')
     expect(screen.getByDisplayValue('Make coffee')).toBeTruthy()
