@@ -2,8 +2,9 @@ import {
   breakdownProposalInputSchema,
   deleteTaskInputSchema,
   orderOptimizationProposalSchema,
-  problemDetailsSchema,
+  setTaskCategoryInputSchema,
   taskBreakdownProposalSchema,
+  taskCategoryAssignmentSchema,
   taskDurationProposalSchema,
   taskProposalInputSchema,
   taskTreeDraftSchema,
@@ -14,21 +15,10 @@ import { createRoute, z } from '@hono/zod-openapi'
 import { logAiRequest } from '../middleware/observability'
 import { rateLimit } from '../middleware/rate-limit'
 import { requireAuth } from '../middleware/require-auth'
-
-const problemResponse = (description: string) => ({
-  description,
-  content: {
-    'application/problem+json': { schema: problemDetailsSchema },
-  },
-})
+import { jsonBody, problemResponse } from './http.schema'
 
 const rootIdParamsSchema = z.object({
   rootId: z.uuid().openapi({ param: { name: 'rootId', in: 'path' } }),
-})
-
-const jsonBody = <T extends z.ZodType>(schema: T) => ({
-  required: true,
-  content: { 'application/json': { schema } },
 })
 
 export const getTaskTreesRoute = createRoute({
@@ -94,6 +84,31 @@ export const deleteTaskTreeRoute = createRoute({
     401: problemResponse('Authentication is required'),
     404: problemResponse('The task tree does not exist'),
     409: problemResponse('The task tree revision conflicts with the saved revision'),
+    429: problemResponse('The request rate limit was exceeded'),
+    500: problemResponse('The request could not be completed'),
+  },
+})
+
+export const setTaskCategoryRoute = createRoute({
+  method: 'patch',
+  path: '/{rootId}/category',
+  operationId: 'setTaskCategory',
+  tags: ['Tasks'],
+  summary: 'Assign or remove a root task category',
+  security: [{ cookieAuth: [] }],
+  middleware: [requireAuth] as const,
+  request: {
+    params: rootIdParamsSchema,
+    body: jsonBody(setTaskCategoryInputSchema),
+  },
+  responses: {
+    200: {
+      description: 'The root task category assignment',
+      content: { 'application/json': { schema: taskCategoryAssignmentSchema } },
+    },
+    400: problemResponse('The category assignment is invalid'),
+    401: problemResponse('Authentication is required'),
+    404: problemResponse('The root task or category does not exist'),
     429: problemResponse('The request rate limit was exceeded'),
     500: problemResponse('The request could not be completed'),
   },

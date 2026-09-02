@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { TaskNode, TaskTreeDraft } from '@helping-hand/schemas'
-import { convertV4MiniflareOptions, Miniflare } from 'miniflare'
+import { createTestDatabase, createTestUser } from '../test/database'
+import { CategoryService } from './category.service'
 import { TaskService } from './task.service'
 import { TaskAi } from './task-ai'
 
@@ -17,40 +18,13 @@ const ids = {
 }
 
 describe('TaskService', () => {
-  let miniflare: Miniflare
+  let miniflare: Awaited<ReturnType<typeof createTestDatabase>>['miniflare']
   let database: D1Database
   let tasks: TaskService
 
   beforeEach(async () => {
-    miniflare = new Miniflare(
-      convertV4MiniflareOptions({
-        modules: true,
-        script: 'export default { fetch() { return new Response() } }',
-        d1Databases: { database: ':memory:' },
-      }),
-    )
-    database = (await miniflare.getD1Database('database')) as D1Database
-
-    const migrations = await Promise.all(
-      ['0001_create_tasks.sql', '0002_create_auth.sql', '0003_update_tasks.sql'].map((file) =>
-        Bun.file(new URL(`../migrations/${file}`, import.meta.url)).text(),
-      ),
-    )
-    for (const migration of migrations) {
-      await database.batch(
-        migration
-          .split(';')
-          .map((statement) => statement.trim())
-          .filter(Boolean)
-          .map((statement) => database.prepare(statement)),
-      )
-    }
-    await database
-      .prepare(
-        'INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
-      )
-      .bind(userId, 'Test User', 'test@example.com', 1, '2026-01-01', '2026-01-01')
-      .run()
+    ;({ database, miniflare } = await createTestDatabase())
+    await createTestUser(database, userId, 'test@example.com')
 
     tasks = new TaskService({
       database,
@@ -91,6 +65,7 @@ describe('TaskService', () => {
         id: ids.dinner,
         title: 'Make dinner',
         durationSeconds: null,
+        categoryId: null,
         children: [],
         revision: 0,
       },
@@ -98,6 +73,7 @@ describe('TaskService', () => {
         id: ids.coffee,
         title: 'Make coffee',
         durationSeconds: 90,
+        categoryId: null,
         children: [
           { id: ids.mug, title: 'Get a mug', durationSeconds: 30, children: [] },
           { id: ids.brew, title: 'Brew coffee', durationSeconds: 60, children: [] },
@@ -120,6 +96,7 @@ describe('TaskService', () => {
       id: ids.breakfast,
       title: 'Make breakfast',
       durationSeconds: 120,
+      categoryId: null,
       revision: 0,
       children: [{ id: ids.toast, title: 'Make toast', durationSeconds: 120, children: [] }],
     })
@@ -165,6 +142,7 @@ describe('TaskService', () => {
       id: ids.coffee,
       title: 'Make coffee',
       durationSeconds: 40,
+      categoryId: null,
       revision: 1,
       children: [
         {
@@ -276,6 +254,78 @@ describe('TaskService', () => {
     expect(tasks.deleteTaskTree('another-user', saved.id, saved.revision)).rejects.toMatchObject({
       code: 'not_found',
     })
+  })
+
+  test('assigns a category to a root without changing its revision', async () => {
+    const category = await new CategoryService({ database }).createCategory(userId, {
+      name: 'Morning',
+    })
+    const saved = await tasks.saveTaskTree(userId, {
+      id: ids.coffee,
+      title: 'Coffee',
+      durationSeconds: null,
+      revision: null,
+      children: [{ id: ids.mug, title: 'Get mug', durationSeconds: 30, children: [] }],
+    })
+
+    expect(await tasks.setTaskCategory(userId, saved.id, { categoryId: category.id })).toEqual({
+      rootId: saved.id,
+      categoryId: category.id,
+    })
+    const categorized = (await tasks.getTaskTrees(userId))[0]
+    expect(categorized).toMatchObject({ categoryId: category.id, revision: 0 })
+    if (!categorized) throw new Error('Expected categorized task tree')
+
+    await tasks.saveTaskTree(userId, {
+      id: categorized.id,
+      title: 'Make coffee',
+      durationSeconds: categorized.durationSeconds,
+      revision: categorized.revision,
+      children: categorized.children,
+    })
+    expect((await tasks.getTaskTrees(userId))[0]).toMatchObject({
+      categoryId: category.id,
+      revision: 1,
+      title: 'Make coffee',
+    })
+  })
+
+  test('rejects nested and cross-user category assignments', async () => {
+    await createTestUser(database, 'user-2')
+    const categories = new CategoryService({ database })
+    const ownCategory = await categories.createCategory(userId, { name: 'Morning' })
+    const foreignCategory = await categories.createCategory('user-2', { name: 'Private' })
+    await tasks.saveTaskTree(userId, {
+      id: ids.coffee,
+      title: 'Coffee',
+      durationSeconds: null,
+      revision: null,
+      children: [{ id: ids.mug, title: 'Get mug', durationSeconds: 30, children: [] }],
+    })
+
+    expect(
+      tasks.setTaskCategory(userId, ids.mug, { categoryId: ownCategory.id }),
+    ).rejects.toMatchObject({ code: 'not_found' })
+    expect(
+      tasks.setTaskCategory(userId, ids.coffee, { categoryId: foreignCategory.id }),
+    ).rejects.toMatchObject({ code: 'not_found' })
+  })
+
+  test('deleting a category preserves its task tree as uncategorized', async () => {
+    const categories = new CategoryService({ database })
+    const category = await categories.createCategory(userId, { name: 'Morning' })
+    const saved = await tasks.saveTaskTree(userId, {
+      id: ids.coffee,
+      title: 'Coffee',
+      durationSeconds: null,
+      revision: null,
+      children: [],
+    })
+    await tasks.setTaskCategory(userId, saved.id, { categoryId: category.id })
+
+    await categories.deleteCategory(userId, category.id)
+
+    expect(await tasks.getTaskTrees(userId)).toEqual([{ ...saved, categoryId: null }])
   })
 
   test('proposes a one-level breakdown for a guest draft without saving it', async () => {

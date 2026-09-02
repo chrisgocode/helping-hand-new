@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { OpenRouterError, RequestTimeoutError } from '@openrouter/sdk/models/errors'
-import { convertV4MiniflareOptions, Miniflare } from 'miniflare'
+import { createTestDatabase } from '../test/database'
 
 let aiFailure: unknown
 let aiCompletion = '{"children":[{"title":"Get a mug"}]}'
@@ -30,34 +30,13 @@ function providerError(status: number, retryAfter?: string) {
 }
 
 describe('task HTTP routes', () => {
-  let miniflare: Miniflare
+  let miniflare: Awaited<ReturnType<typeof createTestDatabase>>['miniflare']
   let database: D1Database
 
   beforeEach(async () => {
     aiFailure = undefined
     aiCompletion = '{"children":[{"title":"Get a mug"}]}'
-    miniflare = new Miniflare(
-      convertV4MiniflareOptions({
-        modules: true,
-        script: 'export default { fetch() { return new Response() } }',
-        d1Databases: { database: ':memory:' },
-      }),
-    )
-    database = (await miniflare.getD1Database('database')) as D1Database
-    const migrations = await Promise.all(
-      ['0001_create_tasks.sql', '0002_create_auth.sql', '0003_update_tasks.sql'].map((file) =>
-        Bun.file(new URL(`../migrations/${file}`, import.meta.url)).text(),
-      ),
-    )
-    for (const migration of migrations) {
-      await database.batch(
-        migration
-          .split(';')
-          .map((statement) => statement.trim())
-          .filter(Boolean)
-          .map((statement) => database.prepare(statement)),
-      )
-    }
+    ;({ database, miniflare } = await createTestDatabase())
   })
 
   afterEach(async () => miniflare.dispose())
@@ -205,6 +184,7 @@ describe('task HTTP routes', () => {
         id: rootId,
         title: 'Make coffee',
         durationSeconds: 60,
+        categoryId: null,
         revision: 0,
         children: [],
       },

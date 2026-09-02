@@ -4,6 +4,59 @@
  */
 
 export interface paths {
+    "/api/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the category list */
+        get: operations["getCategories"];
+        put?: never;
+        /** Create a category at the end of the list */
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the complete category order */
+        put: operations["reorderCategories"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a category and uncategorize its root tasks */
+        delete: operations["deleteCategory"];
+        options?: never;
+        head?: never;
+        /** Rename a category */
+        patch: operations["renameCategory"];
+        trace?: never;
+    };
     "/api/tasks": {
         parameters: {
             query?: never;
@@ -37,6 +90,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{rootId}/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign or remove a root task category */
+        patch: operations["setTaskCategory"];
         trace?: never;
     };
     "/api/tasks/proposals/breakdown": {
@@ -103,6 +173,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Category: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            position: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CategoryList: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            position: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        }[];
+        ProblemDetails: {
+            type: string;
+            title: string;
+            status: number;
+            detail: string;
+            instance: string;
+            retryable: boolean;
+        };
         TaskNode: {
             /** Format: uuid */
             id: string;
@@ -116,6 +214,8 @@ export interface components {
             title: string;
             durationSeconds: number | null;
             children: components["schemas"]["TaskNode"][];
+            /** Format: uuid */
+            categoryId?: string | null;
             revision: number | null;
         };
         TaskTree: {
@@ -124,6 +224,8 @@ export interface components {
             title: string;
             durationSeconds: number | null;
             children: components["schemas"]["TaskNode"][];
+            /** Format: uuid */
+            categoryId: string | null;
             revision: number;
         };
         TaskBreakdownProposal: {
@@ -149,13 +251,11 @@ export interface components {
             taskId: string;
             orderedTaskIds: string[];
         };
-        ProblemDetails: {
-            type: string;
-            title: string;
-            status: number;
-            detail: string;
-            instance: string;
-            retryable: boolean;
+        TaskCategoryAssignment: {
+            /** Format: uuid */
+            rootId: string;
+            /** Format: uuid */
+            categoryId: string | null;
         };
     };
     responses: never;
@@ -166,6 +266,530 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categories in persistent position order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        position: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The created category */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        position: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description The category is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The category conflicts with current category data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    reorderCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    categoryIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description The reordered category list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        position: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description The category order is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The category list has changed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    deleteCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The category was deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The category does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    renameCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The renamed category */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        position: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description The category is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The category does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The category name conflicts with another category */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
     getTaskTrees: {
         parameters: {
             query?: never;
@@ -187,6 +811,8 @@ export interface operations {
                         title: string;
                         durationSeconds: number | null;
                         children: components["schemas"]["TaskNode"][];
+                        /** Format: uuid */
+                        categoryId: string | null;
                         revision: number;
                     }[];
                 };
@@ -258,6 +884,8 @@ export interface operations {
                     title: string;
                     durationSeconds: number | null;
                     children: components["schemas"]["TaskNode"][];
+                    /** Format: uuid */
+                    categoryId?: string | null;
                     revision: number | null;
                 };
             };
@@ -275,6 +903,8 @@ export interface operations {
                         title: string;
                         durationSeconds: number | null;
                         children: components["schemas"]["TaskNode"][];
+                        /** Format: uuid */
+                        categoryId: string | null;
                         revision: number;
                     };
                 };
@@ -499,6 +1129,120 @@ export interface operations {
             };
         };
     };
+    setTaskCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rootId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    categoryId: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The root task category assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        rootId: string;
+                        /** Format: uuid */
+                        categoryId: string | null;
+                    };
+                };
+            };
+            /** @description The category assignment is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The root task or category does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
     proposeTaskBreakdown: {
         parameters: {
             query?: never;
@@ -515,6 +1259,8 @@ export interface operations {
                         title: string;
                         durationSeconds: number | null;
                         children: components["schemas"]["TaskNode"][];
+                        /** Format: uuid */
+                        categoryId?: string | null;
                         revision: number | null;
                     };
                     /** Format: uuid */
@@ -703,6 +1449,8 @@ export interface operations {
                         title: string;
                         durationSeconds: number | null;
                         children: components["schemas"]["TaskNode"][];
+                        /** Format: uuid */
+                        categoryId?: string | null;
                         revision: number | null;
                     };
                     /** Format: uuid */
@@ -890,6 +1638,8 @@ export interface operations {
                         title: string;
                         durationSeconds: number | null;
                         children: components["schemas"]["TaskNode"][];
+                        /** Format: uuid */
+                        categoryId?: string | null;
                         revision: number | null;
                     };
                     /** Format: uuid */

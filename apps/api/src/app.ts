@@ -11,10 +11,11 @@ import { withLogger } from './middleware/observability'
 import { rateLimit } from './middleware/rate-limit'
 import { resolveAuth } from './middleware/require-auth'
 import { openApiConfig } from './openapi'
+import { categoryRoutes } from './routes/category.routes'
 import { taskRoutes } from './routes/task.routes'
-import type { TaskRouteEnv } from './types/task'
+import type { ApiEnv } from './types/api'
 
-const app = new OpenAPIHono<TaskRouteEnv>({
+const app = new OpenAPIHono<ApiEnv>({
   defaultHook: (result, c) => {
     if (!result.success) {
       return problem(
@@ -31,15 +32,23 @@ const app = new OpenAPIHono<TaskRouteEnv>({
   },
 })
 
-const developmentOnly = createMiddleware<TaskRouteEnv>((c, next) =>
+const developmentOnly = createMiddleware<ApiEnv>((c, next) =>
   c.env.APP_ENV === 'development' ? next() : Promise.resolve(c.notFound()),
 )
+
+app.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
+  type: 'apiKey',
+  in: 'cookie',
+  name: 'better-auth.session_token',
+  description: 'Better Auth session cookie. Secure deployments may add a secure cookie prefix.',
+})
 
 app.use('*', requestId({ generator: (c) => c.req.header('cf-ray') ?? crypto.randomUUID() }))
 app.use('*', withLogger)
 app.use('/api/*', (c, next) => cors({ origin: c.env.TRUSTED_ORIGIN, credentials: true })(c, next))
 app.use('/api/*', resolveAuth, rateLimit('regular'))
 app.all('/api/auth/*', (c) => createAuth(c.env).handler(c.req.raw))
+app.route('/api/categories', categoryRoutes)
 app.route('/api/tasks', taskRoutes)
 
 app.use('/openapi.json', developmentOnly)

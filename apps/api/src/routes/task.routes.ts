@@ -3,6 +3,7 @@ import {
   orderOptimizationProposalSchema,
   problemDetailsSchema,
   taskBreakdownProposalSchema,
+  taskCategoryAssignmentSchema,
   taskDurationProposalSchema,
   taskNodeSchema,
   taskTreeDraftSchema,
@@ -17,6 +18,7 @@ import {
   proposeDurations,
   proposeOrder,
   saveTaskTree,
+  setTaskCategory,
 } from '../controllers/task.controller'
 import {
   deleteTaskTreeRoute,
@@ -25,10 +27,11 @@ import {
   proposeTaskDurationsRoute,
   proposeTaskOrderRoute,
   saveTaskTreeRoute,
+  setTaskCategoryRoute,
 } from '../schemas/task.schema'
-import type { TaskRouteEnv } from '../types/task'
+import type { ApiEnv } from '../types/api'
 
-export const taskRoutes = new OpenAPIHono<TaskRouteEnv>()
+export const taskRoutes = new OpenAPIHono<ApiEnv>()
 
 taskRoutes.openAPIRegistry.register('TaskNode', taskNodeSchema)
 taskRoutes.openAPIRegistry.register('TaskTreeDraft', taskTreeDraftSchema)
@@ -37,16 +40,11 @@ taskRoutes.openAPIRegistry.register('TaskBreakdownProposal', taskBreakdownPropos
 taskRoutes.openAPIRegistry.register('TaskDurationProposal', taskDurationProposalSchema)
 taskRoutes.openAPIRegistry.register('OrderOptimizationProposal', orderOptimizationProposalSchema)
 taskRoutes.openAPIRegistry.register('ProblemDetails', problemDetailsSchema)
-taskRoutes.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
-  type: 'apiKey',
-  in: 'cookie',
-  name: 'better-auth.session_token',
-  description: 'Better Auth session cookie. Secure deployments may add a secure cookie prefix.',
-})
-
+taskRoutes.openAPIRegistry.register('TaskCategoryAssignment', taskCategoryAssignmentSchema)
 taskRoutes.openapi(getTaskTreesRoute, getTaskTrees)
 taskRoutes.openapi(saveTaskTreeRoute, saveTaskTree)
 taskRoutes.openapi(deleteTaskTreeRoute, deleteTaskTree)
+taskRoutes.openapi(setTaskCategoryRoute, setTaskCategory)
 taskRoutes.openapi(proposeTaskBreakdownRoute, proposeBreakdown)
 taskRoutes.openapi(proposeTaskDurationsRoute, proposeDurations)
 taskRoutes.openapi(proposeTaskOrderRoute, proposeOrder)

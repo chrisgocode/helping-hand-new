@@ -1,7 +1,9 @@
 import {
   type OrderOptimizationProposal,
+  type SetTaskCategoryInput,
   TASK_TREE_LIMITS,
   type TaskBreakdownProposal,
+  type TaskCategoryAssignment,
   type TaskDurationProposal,
   type TaskNode,
   type TaskTree,
@@ -13,6 +15,7 @@ import type { TaskAi } from './task-ai'
 type TaskRow = {
   id: string
   parentId: string | null
+  categoryId: string | null
   title: string
   position: number
   durationSeconds: number | null
@@ -102,7 +105,7 @@ export class TaskService {
   async getTaskTrees(userId: string): Promise<TaskTree[]> {
     const { results } = await this.#database
       .prepare(
-        'SELECT id, parentId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
+        'SELECT id, parentId, categoryId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
       )
       .bind(userId)
       .all<TaskRow>()
@@ -145,7 +148,7 @@ export class TaskService {
       .sort(
         (left, right) => right.createdAt.localeCompare(left.createdAt) || right.rowId - left.rowId,
       )
-      .map((root) => ({ ...build(root), revision: root.revision }))
+      .map((root) => ({ ...build(root), categoryId: root.categoryId, revision: root.revision }))
   }
 
   async saveTaskTree(userId: string, input: TaskTreeDraft): Promise<TaskTree> {
@@ -155,7 +158,7 @@ export class TaskService {
     const tasks = flattenDraft(draft)
     const { results: existingTasks } = await this.#database
       .prepare(
-        'SELECT id, parentId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
+        'SELECT id, parentId, categoryId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
       )
       .bind(userId)
       .all<TaskRow>()
@@ -311,6 +314,29 @@ export class TaskService {
     if (result.meta.changes === 0) {
       throw new TaskServiceError('conflict', 'Task tree has changed since it was loaded')
     }
+  }
+
+  async setTaskCategory(
+    userId: string,
+    rootId: string,
+    input: SetTaskCategoryInput,
+  ): Promise<TaskCategoryAssignment> {
+    const updated = await this.#database
+      .prepare(
+        `UPDATE task
+         SET categoryId = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ? AND userId = ? AND parentId IS NULL
+           AND (? IS NULL OR EXISTS (
+             SELECT 1 FROM category WHERE id = ? AND userId = ?
+           ))
+         RETURNING id`,
+      )
+      .bind(input.categoryId, rootId, userId, input.categoryId, input.categoryId, userId)
+      .first<{ id: string }>()
+    if (!updated) {
+      throw new TaskServiceError('not_found', 'Task tree or category does not exist')
+    }
+    return { rootId, categoryId: input.categoryId }
   }
 
   async proposeBreakdown(

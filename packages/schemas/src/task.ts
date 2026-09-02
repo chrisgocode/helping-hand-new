@@ -25,11 +25,13 @@ export const taskNodeSchema: z.ZodType<TaskNode> = z.lazy(() =>
 export const taskTreeDraftSchema = z.strictObject({
   ...nodeFields,
   children: z.array(taskNodeSchema),
+  categoryId: z.uuid().nullable().optional(),
   revision: z.number().int().nonnegative().nullable(),
 })
 
 export type TaskTreeDraft = z.infer<typeof taskTreeDraftSchema>
 export const taskTreeSchema = taskTreeDraftSchema.extend({
+  categoryId: z.uuid().nullable(),
   revision: z.number().int().nonnegative(),
 })
 export const taskTreeListSchema = z.array(taskTreeSchema)

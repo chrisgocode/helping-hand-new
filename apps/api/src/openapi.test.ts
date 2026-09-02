@@ -40,6 +40,9 @@ test('publishes every task operation with stable operation IDs', async () => {
         put: { operationId: 'saveTaskTree' },
         delete: { operationId: 'deleteTaskTree' },
       },
+      '/api/tasks/{rootId}/category': {
+        patch: { operationId: 'setTaskCategory' },
+      },
       '/api/tasks/proposals/breakdown': {
         post: { operationId: 'proposeTaskBreakdown' },
       },
@@ -48,6 +51,27 @@ test('publishes every task operation with stable operation IDs', async () => {
       },
       '/api/tasks/proposals/order': {
         post: { operationId: 'proposeTaskOrder' },
+      },
+    },
+  })
+})
+
+test('publishes every category operation with stable operation IDs', async () => {
+  const response = await app.request('/openapi.json', {}, developmentEnv)
+  const document: unknown = await response.json()
+
+  expect(document).toMatchObject({
+    paths: {
+      '/api/categories': {
+        get: { operationId: 'getCategories' },
+        post: { operationId: 'createCategory' },
+      },
+      '/api/categories/order': {
+        put: { operationId: 'reorderCategories' },
+      },
+      '/api/categories/{categoryId}': {
+        patch: { operationId: 'renameCategory' },
+        delete: { operationId: 'deleteCategory' },
       },
     },
   })

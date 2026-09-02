@@ -3,13 +3,13 @@ import { Hono } from 'hono'
 import pino from 'pino'
 import { handleTaskError } from '../controllers/task.controller'
 import { TaskAiError } from '../services/task-ai'
-import type { TaskRouteEnv } from '../types/task'
+import type { ApiEnv } from '../types/api'
 import { logAiRequest } from './observability'
 
 test('AI failure logs contain normalized context without provider or task content', async () => {
   const records: string[] = []
   const testLogger = pino({ base: null }, { write: (record) => records.push(record) })
-  const app = new Hono<TaskRouteEnv>()
+  const app = new Hono<ApiEnv>()
 
   app.use('*', async (c, next) => {
     c.set('requestId', 'test-request-id')
@@ -27,7 +27,7 @@ test('AI failure logs contain normalized context without provider or task conten
 
   const response = await app.request('/', {}, {
     OPENROUTER_MODEL: 'test-model',
-  } as TaskRouteEnv['Bindings'])
+  } as ApiEnv['Bindings'])
   const output = records.join('')
 
   expect(response.status).toBe(503)

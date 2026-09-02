@@ -1,14 +1,14 @@
 import { createMiddleware } from 'hono/factory'
 import { logger } from '../lib/logger'
-import type { TaskRouteEnv } from '../types/task'
+import type { ApiEnv } from '../types/api'
 
-export const withLogger = createMiddleware<TaskRouteEnv>(async (c, next) => {
+export const withLogger = createMiddleware<ApiEnv>(async (c, next) => {
   c.set('logger', logger.child({ requestId: c.get('requestId') }))
   await next()
 })
 
 export function logAiRequest(operation: 'breakdown' | 'durations' | 'order') {
-  return createMiddleware<TaskRouteEnv>(async (c, next) => {
+  return createMiddleware<ApiEnv>(async (c, next) => {
     const startedAt = performance.now()
     await next()
     const failureKind = c.get('aiFailureKind')

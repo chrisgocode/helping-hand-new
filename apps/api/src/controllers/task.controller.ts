@@ -8,10 +8,11 @@ import type {
   proposeTaskDurationsRoute,
   proposeTaskOrderRoute,
   saveTaskTreeRoute,
+  setTaskCategoryRoute,
 } from '../schemas/task.schema'
 import { TaskService, TaskServiceError } from '../services/task.service'
 import { TaskAi, TaskAiError, type TaskAiFailureKind } from '../services/task-ai'
-import type { TaskRouteEnv } from '../types/task'
+import type { ApiEnv } from '../types/api'
 
 const aiProblems = {
   timeout: {
@@ -49,7 +50,7 @@ const aiProblems = {
   { status: 500 | 502 | 503 | 504; type: string; title: string; detail: string }
 >
 
-function taskService(c: Context<TaskRouteEnv>) {
+function taskService(c: Context<ApiEnv>) {
   return new TaskService({
     database: c.env.database,
     taskAi: new TaskAi({
@@ -59,10 +60,10 @@ function taskService(c: Context<TaskRouteEnv>) {
   })
 }
 
-export const getTaskTrees: RouteHandler<typeof getTaskTreesRoute, TaskRouteEnv> = async (c) =>
+export const getTaskTrees: RouteHandler<typeof getTaskTreesRoute, ApiEnv> = async (c) =>
   c.json(await taskService(c).getTaskTrees(c.get('authenticatedUserId')), 200)
 
-export const saveTaskTree: RouteHandler<typeof saveTaskTreeRoute, TaskRouteEnv> = async (c) => {
+export const saveTaskTree: RouteHandler<typeof saveTaskTreeRoute, ApiEnv> = async (c) => {
   const draft = c.req.valid('json')
   const { rootId } = c.req.valid('param')
   if (draft.id !== rootId) {
@@ -80,7 +81,7 @@ export const saveTaskTree: RouteHandler<typeof saveTaskTreeRoute, TaskRouteEnv> 
   return c.json(await taskService(c).saveTaskTree(c.get('authenticatedUserId'), draft), 200)
 }
 
-export const deleteTaskTree: RouteHandler<typeof deleteTaskTreeRoute, TaskRouteEnv> = async (c) => {
+export const deleteTaskTree: RouteHandler<typeof deleteTaskTreeRoute, ApiEnv> = async (c) => {
   const { rootId } = c.req.valid('param')
   await taskService(c).deleteTaskTree(
     c.get('authenticatedUserId'),
@@ -90,31 +91,39 @@ export const deleteTaskTree: RouteHandler<typeof deleteTaskTreeRoute, TaskRouteE
   return c.body(null, 204)
 }
 
-export const proposeBreakdown: RouteHandler<
-  typeof proposeTaskBreakdownRoute,
-  TaskRouteEnv
-> = async (c) => {
+export const setTaskCategory: RouteHandler<typeof setTaskCategoryRoute, ApiEnv> = async (c) =>
+  c.json(
+    await taskService(c).setTaskCategory(
+      c.get('authenticatedUserId'),
+      c.req.valid('param').rootId,
+      c.req.valid('json'),
+    ),
+    200,
+  )
+
+export const proposeBreakdown: RouteHandler<typeof proposeTaskBreakdownRoute, ApiEnv> = async (
+  c,
+) => {
   c.set('aiRequestObserved', true)
   const { draft, taskId, detail } = c.req.valid('json')
   return c.json(await taskService(c).proposeBreakdown(c.get('userId'), draft, taskId, detail), 200)
 }
 
-export const proposeDurations: RouteHandler<
-  typeof proposeTaskDurationsRoute,
-  TaskRouteEnv
-> = async (c) => {
+export const proposeDurations: RouteHandler<typeof proposeTaskDurationsRoute, ApiEnv> = async (
+  c,
+) => {
   c.set('aiRequestObserved', true)
   const { draft, taskId } = c.req.valid('json')
   return c.json(await taskService(c).proposeDurations(c.get('userId'), draft, taskId), 200)
 }
 
-export const proposeOrder: RouteHandler<typeof proposeTaskOrderRoute, TaskRouteEnv> = async (c) => {
+export const proposeOrder: RouteHandler<typeof proposeTaskOrderRoute, ApiEnv> = async (c) => {
   c.set('aiRequestObserved', true)
   const { draft, taskId } = c.req.valid('json')
   return c.json(await taskService(c).proposeOrder(c.get('userId'), draft, taskId), 200)
 }
 
-export const handleTaskError: ErrorHandler<TaskRouteEnv> = (error, c) => {
+export const handleTaskError: ErrorHandler<ApiEnv> = (error, c) => {
   if (error instanceof TaskAiError) {
     c.set('aiFailureKind', error.kind)
     c.set('aiProviderStatus', error.providerStatus)

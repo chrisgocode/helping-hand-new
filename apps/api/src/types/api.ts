@@ -3,7 +3,7 @@ import type { AuthBindings } from '../auth'
 import type { RateLimitBindings } from '../middleware/rate-limit'
 import type { TaskAiBindings, TaskAiFailureKind } from '../services/task-ai'
 
-export type TaskRouteEnv = {
+export type ApiEnv = {
   Bindings: AuthBindings & TaskAiBindings & RateLimitBindings & { APP_ENV?: string }
   Variables: {
     logger: Logger
