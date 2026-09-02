@@ -261,6 +261,43 @@ export function moveTask(
   return next
 }
 
+export function placeTask(
+  draft: TaskTreeDraft,
+  taskId: string,
+  targetId: string,
+  placement: 'before' | 'after',
+): TaskTreeDraft {
+  if (taskId === targetId) return draft
+  if (!findTask(draft, taskId) || !findTask(draft, targetId)) {
+    throw new TaskDraftError('Task does not exist in this draft.')
+  }
+
+  let reordered = false
+  const visit = (task: TaskNode): TaskNode => {
+    const sourceIndex = task.children.findIndex((child) => child.id === taskId)
+    const targetIndex = task.children.findIndex((child) => child.id === targetId)
+    if (sourceIndex !== -1 && targetIndex !== -1) {
+      reordered = true
+      const children = [...task.children]
+      const [moved] = children.splice(sourceIndex, 1)
+      const destination = children.findIndex((child) => child.id === targetId)
+      children.splice(destination + (placement === 'after' ? 1 : 0), 0, moved)
+      return children.every((child, index) => child === task.children[index])
+        ? task
+        : { ...task, children }
+    }
+
+    const children = task.children.map(visit)
+    return children.some((child, index) => child !== task.children[index])
+      ? { ...task, children }
+      : task
+  }
+
+  const next = visit(draft) as TaskTreeDraft
+  if (!reordered) throw new TaskDraftError('Tasks can only move within the same level.')
+  return next
+}
+
 export function applyTaskOrder(draft: TaskTreeDraft, proposal: TaskOrderProposal): TaskTreeDraft {
   const target = findTask(draft, proposal.taskId)
   if (!target) throw new TaskDraftError('Task does not exist in this draft.')

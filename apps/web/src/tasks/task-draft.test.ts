@@ -9,6 +9,7 @@ import {
   deleteTask,
   getTaskDurationSeconds,
   moveTask,
+  placeTask,
   updateTaskDuration,
   updateTaskTitle,
   validateTaskDraft,
@@ -187,6 +188,28 @@ describe('task draft', () => {
 
     expect(moved.children.map(({ id }) => id)).toEqual([secondId, firstId])
     expect(moved.children[1].children).toHaveLength(1)
+  })
+
+  it('places a sibling at any position while preserving its descendants', () => {
+    const root = namedDraft()
+    const firstAdded = addChildTask(root, root.id)
+    const firstId = firstAdded.children[0].id
+    const secondAdded = addChildTask(firstAdded, root.id)
+    const thirdAdded = addChildTask(secondAdded, root.id)
+    const thirdId = thirdAdded.children[2].id
+    const nested = addChildTask(thirdAdded, firstId)
+
+    const moved = placeTask(nested, firstId, thirdId, 'after')
+
+    expect(moved.children.map(({ id }) => id)).toEqual([
+      secondAdded.children[1].id,
+      thirdId,
+      firstId,
+    ])
+    expect(moved.children[2].children).toHaveLength(1)
+    expect(() =>
+      placeTask(nested, nested.children[0].children[0].id, thirdId, 'before'),
+    ).toThrow('same level')
   })
 
   it('applies an exact proposed sibling order while preserving descendants', () => {

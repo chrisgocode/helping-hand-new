@@ -10,6 +10,8 @@
     "test": "vitest run --environment jsdom"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@helping-hand/api-client": "workspace:*",
     "@helping-hand/schemas": "workspace:*",
     "better-auth": "^1.7.2",

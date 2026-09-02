@@ -52,6 +52,10 @@ function renderSavedEditor() {
   render(<RouterProvider router={router} />)
 }
 
+async function openTaskActions(user: ReturnType<typeof userEvent.setup>, taskName: string) {
+  await user.click(await screen.findByLabelText(`Actions for ${taskName}`))
+}
+
 const savedTask = {
   id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',
   title: 'Make coffee',
@@ -87,6 +91,7 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Add subtask to Make coffee' }))
     await user.type(
       screen.getByLabelText('Task title, level 2, position 1'),
@@ -115,6 +120,7 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Break down Make coffee with AI' }))
     fireEvent.change(screen.getByRole('slider', { name: /Step detail/ }), {
       target: { value: '4' },
@@ -138,6 +144,7 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Break down Make coffee with AI' }))
     await user.click(screen.getByRole('button', { name: 'Generate subtasks' }))
 
@@ -156,6 +163,7 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Estimate missing times for Make coffee' }))
 
     expect(
@@ -174,6 +182,7 @@ describe('TaskEditorPage', () => {
     renderEditor()
 
     await user.type(screen.getByLabelText('Task title'), 'Make coffee')
+    await openTaskActions(user, 'Make coffee')
     await user.click(screen.getByRole('button', { name: 'Add subtask to Make coffee' }))
     await user.type(screen.getByLabelText('Task title, level 2, position 1'), 'Get a mug')
     await user.type(screen.getByLabelText('Estimated minutes for Get a mug'), '2')
@@ -224,6 +233,7 @@ describe('TaskEditorPage', () => {
     const user = userEvent.setup()
     renderSavedEditor()
 
+    await openTaskActions(user, 'Make coffee')
     await user.click(
       await screen.findByRole('button', { name: 'Estimate missing times for Make coffee' }),
     )
@@ -260,6 +270,7 @@ describe('TaskEditorPage', () => {
     const user = userEvent.setup()
     renderSavedEditor()
 
+    await openTaskActions(user, 'Make coffee')
     await user.click(
       await screen.findByRole('button', { name: 'Prioritize subtasks for Make coffee' }),
     )
@@ -289,13 +300,12 @@ describe('TaskEditorPage', () => {
     const user = userEvent.setup()
     renderSavedEditor()
 
+    await openTaskActions(user, 'Make coffee')
     await user.click(
       await screen.findByRole('button', { name: 'Prioritize subtasks for Make coffee' }),
     )
 
-    expect((await screen.findByRole('status')).textContent).toContain(
-      'These subtasks are already in a logical order.',
-    )
+    expect(await screen.findByText(/These subtasks are already in a logical order/)).toBeTruthy()
     expect(
       (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled,
     ).toBe(true)
