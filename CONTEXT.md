@@ -36,8 +36,8 @@ A proposed set of immediate children for an actionable task. Accepting the propo
 _Avoid_: Re-breaking down a summary task
 
 **AI proposal**:
-A specific AI-generated change to a task-tree draft. It remains separate from the draft and saved task tree until the user explicitly accepts it.
-_Avoid_: Automatic AI change, replacement task tree
+A specific AI-generated change that is applied to the local task-tree draft after the user requests it. It does not change the saved task tree until the user saves the draft.
+_Avoid_: Automatically persisted AI change, replacement task tree
 
 **Guided session**:
 A temporary traversal of a task tree that shows one actionable task at a time. Ending the session clears its current position and does not change the saved task tree.

@@ -1,10 +1,6 @@
 import { z } from 'zod'
 
-export const TASK_TREE_LIMITS = {
-  maxDepth: 5,
-  maxTasksPerRoot: 100,
-  maxTasksPerUser: 500,
-} as const
+export { TASK_TREE_LIMITS } from './task-limits'
 
 export type TaskNode = {
   id: string
