@@ -15,6 +15,7 @@
     "dev": "turbo dev",
     "dev:api": "turbo dev --filter=@helping-hand/api",
     "dev:web": "turbo dev --filter=@helping-hand/web",
+    "deploy": "bun run --cwd apps/api deploy && bun run --cwd apps/web deploy",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "prepare": "husky"

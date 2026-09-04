@@ -3,10 +3,25 @@
   "name": "helping-hand",
   "compatibility_date": "2026-09-01",
   "main": "./src/index.ts",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "api.helpinghand.chrisgo.dev",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "APP_ENV": "production",
+    "BETTER_AUTH_URL": "https://api.helpinghand.chrisgo.dev",
+    "TRUSTED_ORIGIN": "https://helpinghand.chrisgo.dev",
+    "OPENROUTER_MODEL": "z-ai/glm-5.2:free"
+  },
+  "secrets": {
+    "required": ["BETTER_AUTH_SECRET", "OPENROUTER_API_KEY"]
+  },
   "observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
-    "redact_query_string": false,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
