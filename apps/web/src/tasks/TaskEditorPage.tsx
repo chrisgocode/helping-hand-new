@@ -1,9 +1,17 @@
-import type { TaskDetail } from '@helping-hand/schemas'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router'
+import { setTaskCategoryInputSchema, type TaskDetail } from '@helping-hand/schemas'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Link,
+  useBeforeUnload,
+  useBlocker,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router'
 import { authClient } from '../auth/auth-client'
+import { useCategories } from '../categories/use-categories'
 import { TaskNodeEditor } from './TaskNodeEditor'
-import { countDraftTasks, type TaskTreeDraft } from './task-draft'
+import { countDraftTasks, createTaskDraft, type TaskTreeDraft } from './task-draft'
 import { deleteTaskTree, TaskWorkspaceError } from './task-workspace'
 import { useTaskEditor } from './use-task-editor'
 import { useTaskLibrary } from './use-task-library'
@@ -16,6 +24,7 @@ type EditorProps = {
 function Editor({ initialDraft, reload }: EditorProps) {
   const navigate = useNavigate()
   const editor = useTaskEditor(initialDraft)
+  const categoryLibrary = useCategories()
   const [breakdownDetail, setBreakdownDetail] = useState<TaskDetail>(3)
   const allowNavigation = useRef(false)
   const blocker = useBlocker(
@@ -56,12 +65,17 @@ function Editor({ initialDraft, reload }: EditorProps) {
   useEffect(() => {
     const aiRequiresSignIn =
       editor.ai.state.status === 'failed' && editor.ai.state.recovery === 'sign-in'
-    if (error?.kind !== 'unauthenticated' && !aiRequiresSignIn) return
+    if (
+      error?.kind !== 'unauthenticated' &&
+      categoryLibrary.error?.kind !== 'unauthenticated' &&
+      !aiRequiresSignIn
+    )
+      return
     void authClient
       .signOut()
       .catch(() => undefined)
       .finally(() => navigate('/sign-in', { replace: true }))
-  }, [editor.ai.state, error, navigate])
+  }, [categoryLibrary.error, editor.ai.state, error, navigate])
 
   const handleDelete = useCallback(async () => {
     const revision = editor.draft.revision
@@ -104,6 +118,45 @@ function Editor({ initialDraft, reload }: EditorProps) {
       </header>
 
       <section className="editor-workspace" aria-label="Task tree editor">
+        <div className="task-category-setting">
+          <label htmlFor="task-category">Category</label>
+          <select
+            id="task-category"
+            aria-label="Task category"
+            value={editor.draft.categoryId ?? ''}
+            disabled={busy || categoryLibrary.status !== 'ready'}
+            onChange={(event) => editor.updateCategory(event.target.value || null)}
+          >
+            <option value="">Uncategorized</option>
+            {editor.draft.categoryId &&
+              !categoryLibrary.categories.some(({ id }) => id === editor.draft.categoryId) && (
+                <option value={editor.draft.categoryId}>
+                  {categoryLibrary.status === 'loading'
+                    ? 'Loading category…'
+                    : 'Unavailable category'}
+                </option>
+              )}
+            {categoryLibrary.categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          <span>Applies to the overall task and all its subtasks.</span>
+        </div>
+
+        {categoryLibrary.status === 'error' &&
+          categoryLibrary.error?.kind !== 'unauthenticated' && (
+            <div className="task-category-error" role="status">
+              <span>Categories could not load.</span>
+              {categoryLibrary.error?.retryable && (
+                <button type="button" onClick={() => void categoryLibrary.retry()}>
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+
         <div className="breakdown-detail-setting">
           <div>
             <strong>Step detail</strong>
@@ -289,5 +342,16 @@ function SavedEditor() {
 }
 
 export function TaskEditorPage({ saved = false }: { saved?: boolean }) {
-  return saved ? <SavedEditor /> : <Editor />
+  return saved ? <SavedEditor /> : <NewEditor />
+}
+
+function NewEditor() {
+  const [searchParams] = useSearchParams()
+  const requestedCategoryId = searchParams.get('categoryId')
+  const initialDraft = useMemo(() => {
+    const parsed = setTaskCategoryInputSchema.safeParse({ categoryId: requestedCategoryId })
+    return createTaskDraft(parsed.success ? (parsed.data.categoryId ?? undefined) : undefined)
+  }, [requestedCategoryId])
+
+  return <Editor initialDraft={initialDraft} />
 }

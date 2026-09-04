@@ -13,6 +13,7 @@ import {
   type TaskDurationProposal,
   type TaskOrderProposal,
   type TaskTreeDraft,
+  updateTaskCategory,
   updateTaskDuration,
   updateTaskTitle,
   validateTaskDraft,
@@ -130,6 +131,10 @@ export function useTaskEditor(initialDraft?: TaskTreeDraft) {
   const updateTitle = useCallback(
     (taskId: string, title: string) =>
       changeDraft((draft) => updateTaskTitle(draft, taskId, title)),
+    [changeDraft],
+  )
+  const updateCategory = useCallback(
+    (categoryId: string | null) => changeDraft((draft) => updateTaskCategory(draft, categoryId)),
     [changeDraft],
   )
   const addChild = useCallback(
@@ -258,6 +263,7 @@ export function useTaskEditor(initialDraft?: TaskTreeDraft) {
     isDirty,
     validationIssue,
     updateTitle,
+    updateCategory,
     addChild,
     removeTask,
     placeTask: placeTaskAt,

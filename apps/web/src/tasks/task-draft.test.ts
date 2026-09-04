@@ -9,6 +9,7 @@ import {
   deleteTask,
   getTaskDurationSeconds,
   placeTask,
+  updateTaskCategory,
   updateTaskDuration,
   updateTaskTitle,
   validateTaskDraft,
@@ -33,6 +34,24 @@ describe('task draft', () => {
     expect(createTaskDraft().id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
+  })
+
+  it('starts a new task in the requested category', () => {
+    const categoryId = '66e65fa9-dac8-4800-8ce3-482dcc9c6a45'
+
+    expect(createTaskDraft(categoryId).categoryId).toBe(categoryId)
+  })
+
+  it('changes only the root category and preserves identity for a no-op', () => {
+    const categoryId = '66e65fa9-dac8-4800-8ce3-482dcc9c6a45'
+    const root = createTaskDraft()
+    const draft = addChildTask(root, root.id)
+    const assigned = updateTaskCategory(draft, categoryId)
+
+    expect(assigned).toEqual({ ...draft, categoryId })
+    expect(assigned.children).toBe(draft.children)
+    expect(updateTaskCategory(assigned, categoryId)).toBe(assigned)
+    expect(updateTaskCategory(assigned, null)).toEqual({ ...draft, categoryId: null })
   })
 
   it('adds and updates nested tasks without mutating the previous draft', () => {

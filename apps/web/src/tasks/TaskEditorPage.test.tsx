@@ -2,6 +2,14 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  assignTaskCategory,
+  createCategory,
+  deleteCategory,
+  listCategories,
+  renameCategory,
+  reorderCategories,
+} from '../categories/category-workspace'
 import { TaskEditorPage } from './TaskEditorPage'
 import {
   deleteTaskTree,
@@ -23,20 +31,55 @@ vi.mock('./task-workspace', async (importOriginal) => ({
   saveTaskTree: vi.fn(),
 }))
 
+vi.mock('../categories/category-workspace', () => ({
+  assignTaskCategory: vi.fn(),
+  createCategory: vi.fn(),
+  deleteCategory: vi.fn(),
+  listCategories: vi.fn(),
+  renameCategory: vi.fn(),
+  reorderCategories: vi.fn(),
+}))
+
 const deleteTree = vi.mocked(deleteTaskTree)
 const listTrees = vi.mocked(listTaskTrees)
 const proposeBreakdown = vi.mocked(proposeTaskBreakdown)
 const proposeDurations = vi.mocked(proposeTaskDurations)
 const proposeOrder = vi.mocked(proposeTaskOrder)
 const saveDraft = vi.mocked(saveTaskTree)
+const getCategories = vi.mocked(listCategories)
+const categoryRequests = [
+  vi.mocked(assignTaskCategory),
+  vi.mocked(createCategory),
+  vi.mocked(deleteCategory),
+  vi.mocked(renameCategory),
+  vi.mocked(reorderCategories),
+]
+const homeId = '56c4ec32-4018-455b-b29c-3b8c251fc929'
+const errandsId = 'e0f46b49-f8c8-4d8a-af18-56749c70629c'
+const categories = [
+  {
+    id: homeId,
+    name: 'Home',
+    position: 0,
+    createdAt: '2026-09-02T12:00:00.000Z',
+    updatedAt: '2026-09-02T12:00:00.000Z',
+  },
+  {
+    id: errandsId,
+    name: 'Errands',
+    position: 1,
+    createdAt: '2026-09-02T12:00:00.000Z',
+    updatedAt: '2026-09-02T12:00:00.000Z',
+  },
+]
 
-function renderEditor() {
+function renderEditor(initialEntry = '/tasks/new') {
   const router = createMemoryRouter(
     [
       { path: '/tasks/new', element: <TaskEditorPage /> },
       { path: '/tasks', element: <h1>Task library</h1> },
     ],
-    { initialEntries: ['/tasks/new'] },
+    { initialEntries: [initialEntry] },
   )
   render(<RouterProvider router={router} />)
 }
@@ -80,6 +123,11 @@ describe('TaskEditorPage', () => {
     proposeDurations.mockReset()
     proposeOrder.mockReset()
     saveDraft.mockReset()
+    getCategories.mockReset()
+    categoryRequests.forEach((request) => {
+      request.mockReset()
+    })
+    getCategories.mockResolvedValue(categories)
   })
   afterEach(() => {
     cleanup()
@@ -111,6 +159,47 @@ describe('TaskEditorPage', () => {
         children: [expect.objectContaining({ title: 'Fill the coffee maker' })],
       }),
     )
+  })
+
+  it('creates a task in the category provided by the library', async () => {
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 0,
+    }))
+    const user = userEvent.setup()
+    renderEditor(`/tasks/new?categoryId=${homeId}`)
+
+    const category = (await screen.findByRole('combobox', {
+      name: 'Task category',
+    })) as HTMLSelectElement
+    expect(category.value).toBe(homeId)
+
+    await user.type(screen.getByLabelText('Task title'), 'Clean kitchen')
+    await user.click(screen.getByRole('button', { name: 'Save task' }))
+
+    expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ categoryId: homeId }))
+  })
+
+  it('changes or clears only the root task category before saving', async () => {
+    listTrees.mockResolvedValueOnce([{ ...savedTask, categoryId: homeId }])
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 3,
+    }))
+    const user = userEvent.setup()
+    renderSavedEditor()
+
+    const category = (await screen.findByRole('combobox', {
+      name: 'Task category',
+    })) as HTMLSelectElement
+    expect(category.value).toBe(homeId)
+    await user.selectOptions(category, errandsId)
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ categoryId: errandsId }))
+    expect(screen.queryByLabelText(/Task category, level/)).toBeNull()
   })
 
   it('closes a task action menu when clicking elsewhere', async () => {

@@ -42,5 +42,21 @@ export function useTaskLibrary() {
     }
   }, [load])
 
-  return { ...state, retry: load }
+  const setCategory = useCallback((rootId: string, categoryId: string | null) => {
+    setState((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) => (task.id === rootId ? { ...task, categoryId } : task)),
+    }))
+  }, [])
+
+  const clearCategory = useCallback((categoryId: string) => {
+    setState((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) =>
+        task.categoryId === categoryId ? { ...task, categoryId: null } : task,
+      ),
+    }))
+  }, [])
+
+  return { ...state, retry: load, setCategory, clearCategory }
 }

@@ -41,6 +41,30 @@ describe('useTaskEditor', () => {
     expect(saveDraft).not.toHaveBeenCalled()
   })
 
+  it('keeps a root category change local until the task tree is saved', async () => {
+    const categoryId = '66e65fa9-dac8-4800-8ce3-482dcc9c6a45'
+    const { result } = renderHook(useTaskEditor)
+
+    act(() => {
+      result.current.updateTitle(result.current.draft.id, 'Make coffee')
+      result.current.updateCategory(categoryId)
+    })
+
+    expect(result.current.draft.categoryId).toBe(categoryId)
+    expect(result.current.isDirty).toBe(true)
+    expect(saveDraft).not.toHaveBeenCalled()
+
+    saveDraft.mockImplementationOnce(async (draft) => ({
+      ...draft,
+      categoryId: draft.categoryId ?? null,
+      revision: 0,
+    }))
+    await act(result.current.save)
+
+    expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ categoryId }))
+    expect(result.current.isDirty).toBe(false)
+  })
+
   it('generates durations through the Task editor and includes them when saving', async () => {
     const existing = {
       id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',

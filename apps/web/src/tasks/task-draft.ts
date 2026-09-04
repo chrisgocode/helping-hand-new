@@ -24,12 +24,13 @@ function createUuid() {
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`
 }
 
-export function createTaskDraft(): TaskTreeDraft {
+export function createTaskDraft(categoryId?: string): TaskTreeDraft {
   return {
     id: createUuid(),
     title: '',
     durationSeconds: null,
     children: [],
+    ...(categoryId ? { categoryId } : {}),
     revision: null,
   }
 }
@@ -85,6 +86,10 @@ export function updateTaskTitle(
   title: string,
 ): TaskTreeDraft {
   return updateTask(draft, taskId, (task) => ({ ...task, title }))
+}
+
+export function updateTaskCategory(draft: TaskTreeDraft, categoryId: string | null): TaskTreeDraft {
+  return draft.categoryId === categoryId ? draft : { ...draft, categoryId }
 }
 
 export function updateTaskDuration(
