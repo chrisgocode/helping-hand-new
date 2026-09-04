@@ -115,6 +115,7 @@ describe('useTaskEditor', () => {
   })
 
   it('keeps an unchanged Order optimization clean', async () => {
+    vi.useFakeTimers()
     const existing = {
       id: 'd9cb5e16-c35e-4c60-8e28-26aa744034ee',
       title: 'Make coffee',
@@ -149,6 +150,10 @@ describe('useTaskEditor', () => {
       status: 'order-unchanged',
       taskId: existing.id,
     })
+
+    act(() => vi.advanceTimersByTime(4000))
+    expect(result.current.ai.state).toEqual({ status: 'idle' })
+    vi.useRealTimers()
   })
 
   it('retries manually and clears a failed request after a draft edit', async () => {

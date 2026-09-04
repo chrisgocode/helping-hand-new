@@ -1,5 +1,5 @@
 import type { TaskDetail } from '@helping-hand/schemas'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   addChildTask,
   applyTaskBreakdown,
@@ -114,6 +114,16 @@ export function useTaskEditor(initialDraft?: TaskTreeDraft) {
   const draftRef = useRef(state.draft)
   const inFlight = useRef(false)
   const retryAction = useRef<AiProposalAction | null>(null)
+
+  useEffect(() => {
+    if (state.ai.status !== 'order-unchanged') return
+    const timeout = window.setTimeout(() => {
+      setState((current) =>
+        current.ai.status === 'order-unchanged' ? { ...current, ai: idleAiState } : current,
+      )
+    }, 4000)
+    return () => window.clearTimeout(timeout)
+  }, [state.ai])
 
   const changeDraft = useCallback((change: (draft: TaskTreeDraft) => TaskTreeDraft) => {
     const draft = change(draftRef.current)

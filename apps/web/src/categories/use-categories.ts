@@ -63,6 +63,12 @@ export function useCategories() {
     }
   }, [load])
 
+  useEffect(() => {
+    if (!announcement) return
+    const timeout = window.setTimeout(() => setAnnouncement(''), 4000)
+    return () => window.clearTimeout(timeout)
+  }, [announcement])
+
   const beginMutation = useCallback((action: CategoryAction, targetId?: string) => {
     if (inFlight.current) return false
     inFlight.current = true
