@@ -16,11 +16,13 @@ import {
 import { categoryNameSchema } from '@helping-hand/schemas'
 import type { CSSProperties, FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { Skeleton } from '../app/Skeleton'
 import type { Category } from './category-workspace'
 import type { CategoryMutation } from './use-categories'
 
 type CategoryTabsProps = {
   categories: Category[]
+  loading: boolean
   selected: string | null | undefined
   mutation: CategoryMutation
   announcement: string
@@ -47,6 +49,7 @@ function validateName(name: string) {
 
 export function CategoryTabs({
   categories,
+  loading,
   selected,
   mutation,
   announcement,
@@ -169,27 +172,37 @@ export function CategoryTabs({
                 strategy={horizontalListSortingStrategy}
               >
                 <div className="user-category-tabs" role="presentation">
-                  {categories.map((category) =>
-                    editor.mode === 'rename' && editor.categoryId === category.id ? (
-                      <CategoryNameEditor
-                        key={category.id}
-                        name={editor.name}
-                        pending={mutation.status === 'pending' && mutation.action === 'rename'}
-                        submitLabel="Save"
-                        inputLabel={`Rename ${category.name}`}
-                        onChange={updateName}
-                        onCancel={() => setEditor(idleEditor)}
-                        onSubmit={submitName}
-                      />
-                    ) : (
-                      <SortableCategoryTab
-                        key={category.id}
-                        category={category}
-                        selected={selected === category.id}
-                        disabled={pending || editing}
-                        onSelect={() => select(category.id)}
-                      />
-                    ),
+                  {loading ? (
+                    <>
+                      <span className="visually-hidden" role="status">
+                        Loading categories
+                      </span>
+                      <Skeleton className="category-tab-skeleton category-tab-skeleton-short" />
+                      <Skeleton className="category-tab-skeleton" />
+                    </>
+                  ) : (
+                    categories.map((category) =>
+                      editor.mode === 'rename' && editor.categoryId === category.id ? (
+                        <CategoryNameEditor
+                          key={category.id}
+                          name={editor.name}
+                          pending={mutation.status === 'pending' && mutation.action === 'rename'}
+                          submitLabel="Save"
+                          inputLabel={`Rename ${category.name}`}
+                          onChange={updateName}
+                          onCancel={() => setEditor(idleEditor)}
+                          onSubmit={submitName}
+                        />
+                      ) : (
+                        <SortableCategoryTab
+                          key={category.id}
+                          category={category}
+                          selected={selected === category.id}
+                          disabled={pending || editing}
+                          onSelect={() => select(category.id)}
+                        />
+                      ),
+                    )
                   )}
                 </div>
               </SortableContext>
@@ -226,7 +239,7 @@ export function CategoryTabs({
               type="button"
               aria-label="Add category"
               title={categories.length >= 50 ? 'You can create up to 50 categories.' : undefined}
-              disabled={pending || categories.length >= 50}
+              disabled={loading || pending || categories.length >= 50}
               onClick={() => {
                 setValidationError(null)
                 setEditor({ mode: 'create', name: '' })

@@ -1,9 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { Skeleton } from '../app/Skeleton'
 import { authClient } from '../auth/auth-client'
 import { CategoryTabs } from '../categories/CategoryTabs'
 import { useCategories } from '../categories/use-categories'
 import { useTaskLibrary } from './use-task-library'
+
+function TaskLibrarySkeleton() {
+  return (
+    <div
+      className="task-list task-list-skeleton"
+      role="status"
+      aria-label="Loading tasks"
+      aria-busy="true"
+    >
+      {['first', 'second', 'third'].map((item) => (
+        <div className="task-card task-card-skeleton" key={item} aria-hidden="true">
+          <Skeleton className="task-skeleton-number" />
+          <div className="task-skeleton-copy">
+            <Skeleton className="task-skeleton-title" />
+            <Skeleton className="task-skeleton-meta" />
+          </div>
+          <Skeleton className="task-skeleton-action" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function TaskLibraryPage() {
   const navigate = useNavigate()
@@ -110,6 +133,7 @@ export function TaskLibraryPage() {
 
         <CategoryTabs
           categories={categoryLibrary.categories}
+          loading={categoryLibrary.status === 'loading'}
           selected={categoryFilter}
           mutation={categoryLibrary.mutation}
           announcement={categoryLibrary.announcement}
@@ -158,11 +182,7 @@ export function TaskLibraryPage() {
           )}
 
         <div id="task-library-results" role="tabpanel">
-          {library.status === 'loading' && library.tasks.length === 0 && (
-            <div className="loading-card" aria-busy="true">
-              Loading tasks…
-            </div>
-          )}
+          {library.status === 'loading' && library.tasks.length === 0 && <TaskLibrarySkeleton />}
 
           {library.status === 'ready' &&
             library.tasks.length === 0 &&

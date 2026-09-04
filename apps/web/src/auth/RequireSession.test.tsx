@@ -31,7 +31,7 @@ describe('RequireSession', () => {
 
     renderProtectedRoute()
 
-    expect(screen.getByText('Checking your session…')).toBeTruthy()
+    expect(screen.getByRole('status', { name: 'Checking your session' })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Your tasks' })).toBeNull()
   })
 

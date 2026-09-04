@@ -1,10 +1,20 @@
 import { Navigate, Outlet } from 'react-router'
+import { Skeleton } from '../app/Skeleton'
 import { authClient } from './auth-client'
 
 function SessionLoading() {
   return (
-    <main className="session-loading" aria-busy="true">
-      Checking your session…
+    <main
+      className="session-loading"
+      role="status"
+      aria-label="Checking your session"
+      aria-busy="true"
+    >
+      <div className="session-skeleton">
+        <Skeleton className="session-skeleton-mark" />
+        <Skeleton className="session-skeleton-title" />
+        <Skeleton className="session-skeleton-copy" />
+      </div>
     </main>
   )
 }

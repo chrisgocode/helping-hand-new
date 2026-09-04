@@ -134,6 +134,23 @@ describe('TaskEditorPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('shows a task-shaped placeholder while a saved task loads', () => {
+    listTrees.mockReturnValue(new Promise(() => undefined))
+
+    renderSavedEditor()
+
+    expect(screen.getByRole('status', { name: 'Loading task' })).toBeTruthy()
+  })
+
+  it('shows a category placeholder while editor categories load', () => {
+    getCategories.mockReturnValue(new Promise(() => undefined))
+
+    renderEditor()
+
+    expect(screen.getByText('Loading categories')).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Task category' })).toBeNull()
+  })
+
   it('creates and saves a recursive task tree', async () => {
     saveDraft.mockImplementationOnce(async (draft) => ({
       ...draft,

@@ -85,6 +85,16 @@ describe('TaskLibraryPage categories', () => {
     vi.restoreAllMocks()
   })
 
+  it('shows layout placeholders while tasks and categories load', () => {
+    getCategories.mockReturnValue(new Promise(() => undefined))
+    getTasks.mockReturnValue(new Promise(() => undefined))
+
+    renderLibrary()
+
+    expect(screen.getByText('Loading categories')).toBeTruthy()
+    expect(screen.getByRole('status', { name: 'Loading tasks' })).toBeTruthy()
+  })
+
   it('filters complete task trees by their root category', async () => {
     const user = userEvent.setup()
     renderLibrary()

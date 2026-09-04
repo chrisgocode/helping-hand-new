@@ -8,6 +8,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router'
+import { Skeleton } from '../app/Skeleton'
 import { authClient } from '../auth/auth-client'
 import { useCategories } from '../categories/use-categories'
 import { TaskNodeEditor } from './TaskNodeEditor'
@@ -19,6 +20,44 @@ import { useTaskLibrary } from './use-task-library'
 type EditorProps = {
   initialDraft?: TaskTreeDraft
   reload?: () => Promise<void>
+}
+
+function TaskEditorSkeleton() {
+  return (
+    <main
+      className="task-page editor-page editor-page-skeleton"
+      role="status"
+      aria-label="Loading task"
+      aria-busy="true"
+    >
+      <header className="editor-heading">
+        <div className="editor-heading-skeleton-copy">
+          <Skeleton className="editor-skeleton-eyebrow" />
+          <Skeleton className="editor-skeleton-title" />
+          <Skeleton className="editor-skeleton-copy" />
+        </div>
+        <Skeleton className="editor-skeleton-count" />
+      </header>
+      <section className="editor-workspace editor-workspace-skeleton">
+        <div className="editor-skeleton-setting">
+          <Skeleton className="editor-skeleton-label" />
+          <Skeleton className="editor-skeleton-control" />
+          <Skeleton className="editor-skeleton-help" />
+        </div>
+        <div className="editor-skeleton-setting editor-skeleton-detail">
+          <div>
+            <Skeleton className="editor-skeleton-label" />
+            <Skeleton className="editor-skeleton-help" />
+          </div>
+          <Skeleton className="editor-skeleton-slider" />
+        </div>
+        <div className="task-node root-task-node editor-skeleton-node">
+          <Skeleton className="editor-skeleton-field-label" />
+          <Skeleton className="editor-skeleton-field" />
+        </div>
+      </section>
+    </main>
+  )
 }
 
 function Editor({ initialDraft, reload }: EditorProps) {
@@ -40,6 +79,7 @@ function Editor({ initialDraft, reload }: EditorProps) {
   const taskCount = countDraftTasks(editor.draft)
   const error = deleteState.error ?? editor.error
   const existing = editor.draft.revision !== null
+  const categoriesLoading = categoryLibrary.status === 'loading'
 
   useBeforeUnload(
     useCallback(
@@ -118,30 +158,35 @@ function Editor({ initialDraft, reload }: EditorProps) {
       </header>
 
       <section className="editor-workspace" aria-label="Task tree editor">
-        <div className="task-category-setting">
+        <div className="task-category-setting" aria-busy={categoriesLoading || undefined}>
           <label htmlFor="task-category">Category</label>
-          <select
-            id="task-category"
-            aria-label="Task category"
-            value={editor.draft.categoryId ?? ''}
-            disabled={busy || categoryLibrary.status !== 'ready'}
-            onChange={(event) => editor.updateCategory(event.target.value || null)}
-          >
-            <option value="">Uncategorized</option>
-            {editor.draft.categoryId &&
-              !categoryLibrary.categories.some(({ id }) => id === editor.draft.categoryId) && (
-                <option value={editor.draft.categoryId}>
-                  {categoryLibrary.status === 'loading'
-                    ? 'Loading category…'
-                    : 'Unavailable category'}
+          {categoriesLoading ? (
+            <>
+              <span className="visually-hidden" role="status">
+                Loading categories
+              </span>
+              <Skeleton className="task-category-select-skeleton" />
+            </>
+          ) : (
+            <select
+              id="task-category"
+              aria-label="Task category"
+              value={editor.draft.categoryId ?? ''}
+              disabled={busy || categoryLibrary.status !== 'ready'}
+              onChange={(event) => editor.updateCategory(event.target.value || null)}
+            >
+              <option value="">Uncategorized</option>
+              {editor.draft.categoryId &&
+                !categoryLibrary.categories.some(({ id }) => id === editor.draft.categoryId) && (
+                  <option value={editor.draft.categoryId}>Unavailable category</option>
+                )}
+              {categoryLibrary.categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
-              )}
-            {categoryLibrary.categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+              ))}
+            </select>
+          )}
           <span>Applies to the overall task and all its subtasks.</span>
         </div>
 
@@ -304,7 +349,7 @@ function SavedEditor() {
   }, [library.error, navigate])
 
   if (library.status === 'loading' && !task) {
-    return <main className="task-page editor-page loading-card">Loading task…</main>
+    return <TaskEditorSkeleton />
   }
 
   if (library.status === 'error' && !task) {
