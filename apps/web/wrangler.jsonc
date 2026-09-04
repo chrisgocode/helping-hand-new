@@ -3,6 +3,10 @@
   "name": "helping-hand-web",
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
+  "preview_urls": true,
+  "observability": {
+    "enabled": false
+  },
   "routes": [
     {
       "pattern": "helpinghand.chrisgo.dev",
