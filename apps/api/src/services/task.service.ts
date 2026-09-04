@@ -156,6 +156,13 @@ export class TaskService {
     if (!parsed.success) throw new TaskServiceError('invalid', 'Invalid task tree')
     const draft = parsed.data
     const tasks = flattenDraft(draft)
+    if (draft.categoryId) {
+      const category = await this.#database
+        .prepare('SELECT id FROM category WHERE id = ? AND userId = ?')
+        .bind(draft.categoryId, userId)
+        .first<{ id: string }>()
+      if (!category) throw new TaskServiceError('not_found', 'Category does not exist')
+    }
     const { results: existingTasks } = await this.#database
       .prepare(
         'SELECT id, parentId, categoryId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
@@ -176,12 +183,13 @@ export class TaskService {
           tasks.map((task) =>
             this.#database
               .prepare(
-                'INSERT INTO task (id, userId, parentId, title, position, durationSeconds) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO task (id, userId, parentId, categoryId, title, position, durationSeconds) VALUES (?, ?, ?, ?, ?, ?, ?)',
               )
               .bind(
                 task.id,
                 userId,
                 task.parentId,
+                task.parentId === null ? (draft.categoryId ?? null) : null,
                 task.title,
                 task.position,
                 task.children.length === 0 ? task.durationSeconds : null,
@@ -246,6 +254,15 @@ export class TaskService {
         )
         .bind(draft.id, userId, draft.id, userId, draft.revision),
     ]
+    if (draft.categoryId !== undefined) {
+      statements.push(
+        this.#database
+          .prepare(
+            'UPDATE task SET categoryId = ? WHERE id = ? AND userId = ? AND parentId IS NULL',
+          )
+          .bind(draft.categoryId, draft.id, userId),
+      )
+    }
     if (deletedIds.length > 0) {
       statements.push(
         this.#database

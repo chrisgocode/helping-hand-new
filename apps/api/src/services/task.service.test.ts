@@ -103,6 +103,61 @@ describe('TaskService', () => {
     expect(await tasks.getTaskTrees(userId)).toEqual([saved])
   })
 
+  test('creates a complete task tree in an owned category', async () => {
+    const category = await new CategoryService({ database }).createCategory(userId, {
+      name: 'Morning',
+    })
+
+    const saved = await tasks.saveTaskTree(userId, {
+      id: ids.coffee,
+      title: 'Make coffee',
+      durationSeconds: null,
+      categoryId: category.id,
+      revision: null,
+      children: [{ id: ids.mug, title: 'Get mug', durationSeconds: 30, children: [] }],
+    })
+
+    expect(saved.categoryId).toBe(category.id)
+  })
+
+  test('changes and clears a root category through complete-tree saves', async () => {
+    const categories = new CategoryService({ database })
+    const morning = await categories.createCategory(userId, { name: 'Morning' })
+    const kitchen = await categories.createCategory(userId, { name: 'Kitchen' })
+    const original = await tasks.saveTaskTree(userId, {
+      id: ids.coffee,
+      title: 'Make coffee',
+      durationSeconds: null,
+      categoryId: morning.id,
+      revision: null,
+      children: [],
+    })
+
+    const moved = await tasks.saveTaskTree(userId, { ...original, categoryId: kitchen.id })
+    expect(moved.categoryId).toBe(kitchen.id)
+
+    const cleared = await tasks.saveTaskTree(userId, { ...moved, categoryId: null })
+    expect(cleared.categoryId).toBeNull()
+  })
+
+  test('rejects a category owned by another user during a complete-tree save', async () => {
+    await createTestUser(database, 'user-2')
+    const category = await new CategoryService({ database }).createCategory('user-2', {
+      name: 'Private',
+    })
+
+    expect(
+      tasks.saveTaskTree(userId, {
+        id: ids.coffee,
+        title: 'Make coffee',
+        durationSeconds: null,
+        categoryId: category.id,
+        revision: null,
+        children: [],
+      }),
+    ).rejects.toMatchObject({ code: 'not_found' })
+  })
+
   test('updates, reorders, adds, and deletes within a complete task tree', async () => {
     await tasks.saveTaskTree(userId, {
       id: ids.coffee,
