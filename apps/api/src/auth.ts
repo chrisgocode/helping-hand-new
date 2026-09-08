@@ -1,4 +1,7 @@
 import { betterAuth } from 'better-auth'
+import { bearer } from 'better-auth/plugins'
+
+export type AccountKind = 'caretaker' | 'recipient'
 
 export type AuthBindings = {
   database: D1Database
@@ -19,5 +22,16 @@ export function createAuth(env: AuthBindings) {
     trustedOrigins: [env.TRUSTED_ORIGIN],
     advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] } },
     emailAndPassword: { enabled: true },
+    user: {
+      additionalFields: {
+        accountKind: {
+          type: 'string',
+          required: false,
+          defaultValue: 'caretaker',
+          input: false,
+        },
+      },
+    },
+    plugins: [bearer()],
   })
 }

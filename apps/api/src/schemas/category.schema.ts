@@ -6,18 +6,12 @@ import {
   reorderCategoriesInputSchema,
 } from '@helping-hand/schemas'
 import { createRoute, z } from '@hono/zod-openapi'
-import { requireAuth } from '../middleware/require-auth'
-import { jsonBody, problemResponse } from './http.schema'
+import { requireCaretaker } from '../middleware/require-auth'
+import { caretakerErrors, jsonBody, problemResponse } from './http.schema'
 
 const categoryIdParamsSchema = z.object({
   categoryId: z.uuid().openapi({ param: { name: 'categoryId', in: 'path' } }),
 })
-
-const categoryErrors = {
-  401: problemResponse('Authentication is required'),
-  429: problemResponse('The request rate limit was exceeded'),
-  500: problemResponse('The request could not be completed'),
-}
 
 export const getCategoriesRoute = createRoute({
   method: 'get',
@@ -26,13 +20,13 @@ export const getCategoriesRoute = createRoute({
   tags: ['Categories'],
   summary: 'Get the category list',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   responses: {
     200: {
       description: 'Categories in persistent position order',
       content: { 'application/json': { schema: categoryListSchema } },
     },
-    ...categoryErrors,
+    ...caretakerErrors(),
   },
 })
 
@@ -43,7 +37,7 @@ export const createCategoryRoute = createRoute({
   tags: ['Categories'],
   summary: 'Create a category at the end of the list',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: { body: jsonBody(createCategoryInputSchema) },
   responses: {
     201: {
@@ -52,7 +46,7 @@ export const createCategoryRoute = createRoute({
     },
     400: problemResponse('The category is invalid'),
     409: problemResponse('The category conflicts with current category data'),
-    ...categoryErrors,
+    ...caretakerErrors(),
   },
 })
 
@@ -63,7 +57,7 @@ export const reorderCategoriesRoute = createRoute({
   tags: ['Categories'],
   summary: 'Replace the complete category order',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: { body: jsonBody(reorderCategoriesInputSchema) },
   responses: {
     200: {
@@ -72,7 +66,7 @@ export const reorderCategoriesRoute = createRoute({
     },
     400: problemResponse('The category order is invalid'),
     409: problemResponse('The category list has changed'),
-    ...categoryErrors,
+    ...caretakerErrors(),
   },
 })
 
@@ -83,7 +77,7 @@ export const renameCategoryRoute = createRoute({
   tags: ['Categories'],
   summary: 'Rename a category',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: {
     params: categoryIdParamsSchema,
     body: jsonBody(renameCategoryInputSchema),
@@ -96,7 +90,7 @@ export const renameCategoryRoute = createRoute({
     400: problemResponse('The category is invalid'),
     404: problemResponse('The category does not exist'),
     409: problemResponse('The category name conflicts with another category'),
-    ...categoryErrors,
+    ...caretakerErrors(),
   },
 })
 
@@ -107,11 +101,11 @@ export const deleteCategoryRoute = createRoute({
   tags: ['Categories'],
   summary: 'Delete a category and uncategorize its root tasks',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: { params: categoryIdParamsSchema },
   responses: {
     204: { description: 'The category was deleted' },
     404: problemResponse('The category does not exist'),
-    ...categoryErrors,
+    ...caretakerErrors(),
   },
 })

@@ -169,6 +169,246 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the caretaker's recipients with enrollment and access status */
+        get: operations["getRecipients"];
+        put?: never;
+        /**
+         * Create a recipient profile and its credential-free identity
+         * @description No device is signed in. Use an enrollment to sign a device in.
+         */
+        post: operations["createRecipient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipients/{recipientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a recipient display name or active state
+         * @description Disabling a recipient revokes device access and cancels a pending enrollment.
+         */
+        patch: operations["updateRecipient"];
+        trace?: never;
+    };
+    "/api/recipients/{recipientId}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the root tasks assigned to a recipient */
+        get: operations["getRecipientTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipients/{recipientId}/tasks/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign a complete task tree to a recipient
+         * @description Assignment is idempotent and the task must be a root task.
+         */
+        put: operations["assignRecipientTask"];
+        post?: never;
+        /** Remove a task tree assignment from a recipient */
+        delete: operations["unassignRecipientTask"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipients/{recipientId}/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke recipient device access
+         * @description Cancels a pending enrollment and ends the current device session. The recipient profile and its assignments are preserved.
+         */
+        delete: operations["revokeRecipientAccess"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipients/{recipientId}/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue an enrollment QR code for a recipient
+         * @description Issuing cancels any enrollment already open for the recipient.
+         */
+        post: operations["issueEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipient/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the enrolled recipient identity and session expiry */
+        get: operations["getRecipientIdentity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipient/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the complete task trees assigned to this device
+         * @description Returns an empty list when nothing is assigned.
+         */
+        get: operations["getAssignedTaskTrees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/enrollments/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bind a scanned enrollment to this device
+         * @description No authentication is required; the scanned QR secret authorizes the claim. Repeating the request with the same claimant secret returns the same confirmation code.
+         */
+        post: operations["claimEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/enrollments/{enrollmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get enrollment state and, after a claim, the confirmation code
+         * @description Session and claimant secrets are never returned.
+         */
+        get: operations["getEnrollment"];
+        put?: never;
+        post?: never;
+        /**
+         * Cancel an enrollment
+         * @description Cancelling cannot undo an already active session. Revoke recipient access for that.
+         */
+        delete: operations["cancelEnrollment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/enrollments/{enrollmentId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the displayed code and activate the recipient device
+         * @description Activation replaces the recipient session and revokes the previous device in one state change.
+         */
+        post: operations["approveEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/enrollments/{enrollmentId}/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poll for approval or collect the approved session
+         * @description Returns 202 while approval is pending. On success the bearer token is returned in the body with Cache-Control: no-store and may be collected again by the same claimant until the delivery window closes.
+         */
+        post: operations["collectEnrollmentSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -257,6 +497,78 @@ export interface components {
             /** Format: uuid */
             categoryId: string | null;
         };
+        Recipient: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            isActive: boolean;
+            hasActiveSession: boolean;
+            /** Format: uuid */
+            pendingEnrollmentId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        RecipientAssignment: {
+            /** Format: uuid */
+            rootTaskId: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RecipientIdentity: {
+            /** Format: uuid */
+            recipientId: string;
+            displayName: string;
+            /** Format: date-time */
+            sessionExpiresAt: string;
+        };
+        IssuedEnrollment: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            state: "issued" | "claimed" | "approved" | "delivered" | "cancelled" | "expired";
+            payload: {
+                /** @enum {number} */
+                version: 1;
+                /** Format: uuid */
+                enrollmentId: string;
+                secret: string;
+            };
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        EnrollmentStatus: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            recipientId: string;
+            /** @enum {string} */
+            state: "issued" | "claimed" | "approved" | "delivered" | "cancelled" | "expired";
+            matchingCode: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        EnrollmentClaim: {
+            /** Format: uuid */
+            enrollmentId: string;
+            matchingCode: string;
+            /** Format: date-time */
+            expiresAt: string;
+            pollIntervalSeconds: number;
+        };
+        RecipientSession: {
+            token: string;
+            /** @enum {string} */
+            tokenType: "Bearer";
+            /** Format: date-time */
+            expiresAt: string;
+            recipient: {
+                /** Format: uuid */
+                id: string;
+                displayName: string;
+            };
+        };
     };
     responses: never;
     parameters: never;
@@ -295,6 +607,22 @@ export interface operations {
             };
             /** @description Authentication is required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -394,6 +722,22 @@ export interface operations {
             };
             /** @description Authentication is required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -523,6 +867,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The category list has changed */
             409: {
                 headers: {
@@ -593,6 +953,22 @@ export interface operations {
             };
             /** @description Authentication is required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -724,6 +1100,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The category does not exist */
             404: {
                 headers: {
@@ -819,6 +1211,22 @@ export interface operations {
             };
             /** @description Authentication is required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -941,6 +1349,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The task tree does not exist */
             404: {
                 headers: {
@@ -1049,6 +1473,22 @@ export interface operations {
             };
             /** @description Authentication is required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1193,6 +1633,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The root task or category does not exist */
             404: {
                 headers: {
@@ -1305,6 +1761,22 @@ export interface operations {
             };
             /** @description Authentication is required for this saved task tree */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1508,6 +1980,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The selected task or saved task tree does not exist */
             404: {
                 headers: {
@@ -1693,6 +2181,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
             /** @description The selected task or saved task tree does not exist */
             404: {
                 headers: {
@@ -1791,6 +2295,1769 @@ export interface operations {
             };
             /** @description AI generation timed out */
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getRecipients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recipients ordered oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        displayName: string;
+                        isActive: boolean;
+                        hasActiveSession: boolean;
+                        /** Format: uuid */
+                        pendingEnrollmentId: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    createRecipient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    displayName: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The created recipient */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        displayName: string;
+                        isActive: boolean;
+                        hasActiveSession: boolean;
+                        /** Format: uuid */
+                        pendingEnrollmentId: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description The recipient is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient limit was reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    updateRecipient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    displayName?: string;
+                    isActive?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The updated recipient */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        displayName: string;
+                        isActive: boolean;
+                        hasActiveSession: boolean;
+                        /** Format: uuid */
+                        pendingEnrollmentId: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description The recipient update is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getRecipientTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assigned root tasks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        rootTaskId: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    assignRecipientTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The task tree is assigned */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Only a root task can be assigned */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient or task tree does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The assignment limit was reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    unassignRecipientTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The task tree is not assigned */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    revokeRecipientAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device access was revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    issueEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The issued enrollment and its QR payload */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "issued" | "claimed" | "approved" | "delivered" | "cancelled" | "expired";
+                        payload: {
+                            /** @enum {number} */
+                            version: 1;
+                            /** Format: uuid */
+                            enrollmentId: string;
+                            secret: string;
+                        };
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient is disabled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getRecipientIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enrolled recipient */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        recipientId: string;
+                        displayName: string;
+                        /** Format: date-time */
+                        sessionExpiresAt: string;
+                    };
+                };
+            };
+            /** @description The device is not enrolled or its access was revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A caretaker account cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getAssignedTaskTrees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assigned task trees */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskNode"][];
+                };
+            };
+            /** @description The device is not enrolled or its access was revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A caretaker account cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    claimEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    payload: {
+                        /** @enum {number} */
+                        version: 1;
+                        /** Format: uuid */
+                        enrollmentId: string;
+                        secret: string;
+                    };
+                    claimantSecret: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The confirmation code to display to the caretaker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        enrollmentId: string;
+                        matchingCode: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        pollIntervalSeconds: number;
+                    };
+                };
+            };
+            /** @description The request is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment does not exist or the secret does not match */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment was already claimed by another device */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enrollment state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        recipientId: string;
+                        /** @enum {string} */
+                        state: "issued" | "claimed" | "approved" | "delivered" | "cancelled" | "expired";
+                        matchingCode: string | null;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    cancelEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enrollment is cancelled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    approveEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    matchingCode: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The approved enrollment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        recipientId: string;
+                        /** @enum {string} */
+                        state: "issued" | "claimed" | "approved" | "delivered" | "cancelled" | "expired";
+                        matchingCode: string | null;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description The approval is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The confirmation code or enrollment state does not match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    collectEnrollmentSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    claimantSecret: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The approved recipient session */
+            200: {
+                headers: {
+                    "Cache-Control": string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                        /** @enum {string} */
+                        tokenType: "Bearer";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        recipient: {
+                            /** Format: uuid */
+                            id: string;
+                            displayName: string;
+                        };
+                    };
+                };
+            };
+            /** @description Approval is still pending */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        state: "claimed";
+                        pollIntervalSeconds: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description The request is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment does not exist or the secret does not match */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The enrollment rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

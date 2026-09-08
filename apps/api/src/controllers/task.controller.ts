@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi'
 import type { Context, ErrorHandler } from 'hono'
 import { problem } from '../lib/problem'
+import { serviceErrorHandler } from '../lib/service-error'
 import type {
   deleteTaskTreeRoute,
   getTaskTreesRoute,
@@ -134,67 +135,28 @@ export const handleTaskError: ErrorHandler<ApiEnv> = (error, c) => {
         : { 'Retry-After': String(error.retryAfterSeconds) }
     return problem(c, { ...details, retryable: error.retryable }, status, headers)
   }
-  if (!(error instanceof TaskServiceError)) {
-    c.get('logger').error({
-      event: 'unhandled_error',
-      code: 'internal_error',
-      route: c.req.routePath,
-    })
-    return problem(
-      c,
-      {
-        type: 'urn:helping-hand:problem:internal-error',
-        title: 'Internal server error',
-        detail: 'The request could not be completed.',
-        retryable: false,
-      },
-      500,
-    )
-  }
-  if (error.code === 'unauthorized') {
-    return problem(
-      c,
-      {
-        type: 'urn:helping-hand:problem:unauthorized',
-        title: 'Authentication required',
-        detail: error.message,
-        retryable: false,
-      },
-      401,
-    )
-  }
-  if (error.code === 'invalid') {
-    return problem(
-      c,
-      {
-        type: 'urn:helping-hand:problem:validation',
-        title: 'Invalid request',
-        detail: error.message,
-        retryable: false,
-      },
-      400,
-    )
-  }
-  if (error.code === 'not_found') {
-    return problem(
-      c,
-      {
-        type: 'urn:helping-hand:problem:not-found',
-        title: 'Task not found',
-        detail: error.message,
-        retryable: false,
-      },
-      404,
-    )
-  }
-  return problem(
-    c,
-    {
-      type: 'urn:helping-hand:problem:conflict',
-      title: 'Task conflict',
-      detail: error.message,
-      retryable: false,
-    },
-    409,
-  )
+  return handleTaskServiceError(error, c)
 }
+
+const handleTaskServiceError = serviceErrorHandler(TaskServiceError, {
+  unauthorized: {
+    type: 'urn:helping-hand:problem:unauthorized',
+    title: 'Authentication required',
+    status: 401,
+  },
+  invalid: {
+    type: 'urn:helping-hand:problem:validation',
+    title: 'Invalid request',
+    status: 400,
+  },
+  not_found: {
+    type: 'urn:helping-hand:problem:not-found',
+    title: 'Task not found',
+    status: 404,
+  },
+  conflict: {
+    type: 'urn:helping-hand:problem:conflict',
+    title: 'Task conflict',
+    status: 409,
+  },
+})

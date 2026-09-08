@@ -1,3 +1,5 @@
 export * from './category'
+export * from './enrollment'
 export * from './problem'
+export * from './recipient'
 export * from './task'

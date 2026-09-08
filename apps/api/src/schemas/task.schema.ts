@@ -14,7 +14,7 @@ import {
 import { createRoute, z } from '@hono/zod-openapi'
 import { logAiRequest } from '../middleware/observability'
 import { rateLimit } from '../middleware/rate-limit'
-import { requireAuth } from '../middleware/require-auth'
+import { denyRecipient, requireCaretaker } from '../middleware/require-auth'
 import { jsonBody, problemResponse } from './http.schema'
 
 const rootIdParamsSchema = z.object({
@@ -28,13 +28,14 @@ export const getTaskTreesRoute = createRoute({
   tags: ['Tasks'],
   summary: 'Get every saved task tree',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   responses: {
     200: {
       description: 'Saved task trees ordered newest first',
       content: { 'application/json': { schema: taskTreeListSchema } },
     },
     401: problemResponse('Authentication is required'),
+    403: problemResponse('A recipient device cannot perform this operation'),
     429: problemResponse('The request rate limit was exceeded'),
     500: problemResponse('The request could not be completed'),
   },
@@ -47,7 +48,7 @@ export const saveTaskTreeRoute = createRoute({
   tags: ['Tasks'],
   summary: 'Create or replace a complete task tree',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: {
     params: rootIdParamsSchema,
     body: jsonBody(taskTreeDraftSchema),
@@ -59,6 +60,7 @@ export const saveTaskTreeRoute = createRoute({
     },
     400: problemResponse('The task tree is invalid'),
     401: problemResponse('Authentication is required'),
+    403: problemResponse('A recipient device cannot perform this operation'),
     404: problemResponse('The task tree does not exist'),
     409: problemResponse('The task tree revision conflicts with the saved revision'),
     429: problemResponse('The request rate limit was exceeded'),
@@ -73,7 +75,7 @@ export const deleteTaskTreeRoute = createRoute({
   tags: ['Tasks'],
   summary: 'Delete a complete task tree',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: {
     params: rootIdParamsSchema,
     body: jsonBody(deleteTaskInputSchema),
@@ -82,6 +84,7 @@ export const deleteTaskTreeRoute = createRoute({
     204: { description: 'The task tree was deleted' },
     400: problemResponse('The request is invalid'),
     401: problemResponse('Authentication is required'),
+    403: problemResponse('A recipient device cannot perform this operation'),
     404: problemResponse('The task tree does not exist'),
     409: problemResponse('The task tree revision conflicts with the saved revision'),
     429: problemResponse('The request rate limit was exceeded'),
@@ -96,7 +99,7 @@ export const setTaskCategoryRoute = createRoute({
   tags: ['Tasks'],
   summary: 'Assign or remove a root task category',
   security: [{ cookieAuth: [] }],
-  middleware: [requireAuth] as const,
+  middleware: [requireCaretaker] as const,
   request: {
     params: rootIdParamsSchema,
     body: jsonBody(setTaskCategoryInputSchema),
@@ -108,6 +111,7 @@ export const setTaskCategoryRoute = createRoute({
     },
     400: problemResponse('The category assignment is invalid'),
     401: problemResponse('Authentication is required'),
+    403: problemResponse('A recipient device cannot perform this operation'),
     404: problemResponse('The root task or category does not exist'),
     429: problemResponse('The request rate limit was exceeded'),
     500: problemResponse('The request could not be completed'),
@@ -117,6 +121,7 @@ export const setTaskCategoryRoute = createRoute({
 const proposalResponses = {
   400: problemResponse('The task-tree draft is invalid'),
   401: problemResponse('Authentication is required for this saved task tree'),
+  403: problemResponse('A recipient device cannot perform this operation'),
   404: problemResponse('The selected task or saved task tree does not exist'),
   409: problemResponse('The saved task tree revision has changed'),
   429: problemResponse('The AI request rate limit was exceeded'),
@@ -134,7 +139,7 @@ export const proposeTaskBreakdownRoute = createRoute({
   summary: 'Propose immediate children for an actionable task',
   description:
     'The proposal does not modify the draft. A saved draft requires an authenticated owner.',
-  middleware: [rateLimit('ai'), logAiRequest('breakdown')] as const,
+  middleware: [denyRecipient, rateLimit('ai'), logAiRequest('breakdown')] as const,
   request: { body: jsonBody(breakdownProposalInputSchema) },
   responses: {
     200: {
@@ -153,7 +158,7 @@ export const proposeTaskDurationsRoute = createRoute({
   summary: 'Propose missing durations for a task subtree',
   description:
     'The proposal does not modify the draft. A saved draft requires an authenticated owner.',
-  middleware: [rateLimit('ai'), logAiRequest('durations')] as const,
+  middleware: [denyRecipient, rateLimit('ai'), logAiRequest('durations')] as const,
   request: { body: jsonBody(taskProposalInputSchema) },
   responses: {
     200: {
@@ -172,7 +177,7 @@ export const proposeTaskOrderRoute = createRoute({
   summary: 'Propose a dependency-aware order for immediate children',
   description:
     'The proposal does not modify the draft or move tasks to another parent. A saved draft requires an authenticated owner.',
-  middleware: [rateLimit('ai'), logAiRequest('order')] as const,
+  middleware: [denyRecipient, rateLimit('ai'), logAiRequest('order')] as const,
   request: { body: jsonBody(taskProposalInputSchema) },
   responses: {
     200: {

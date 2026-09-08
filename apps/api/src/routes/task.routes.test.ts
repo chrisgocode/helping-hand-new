@@ -17,6 +17,7 @@ mock.module('@openrouter/sdk', () => ({
 }))
 
 const { default: app } = await import('../app')
+const { testEnv } = await import('../test/api')
 
 function providerError(status: number, retryAfter?: string) {
   return new OpenRouterError('sensitive provider message', {
@@ -41,15 +42,11 @@ describe('task HTTP routes', () => {
 
   afterEach(async () => miniflare.dispose())
 
-  function rateLimiters(guestAi = true) {
-    const allow = { limit: async () => ({ success: true }) }
-    return {
-      MEMBER_API_RATE_LIMITER: allow,
-      GUEST_API_RATE_LIMITER: allow,
-      MEMBER_AI_RATE_LIMITER: allow,
-      GUEST_AI_RATE_LIMITER: { limit: async () => ({ success: guestAi }) },
-    }
-  }
+  /** The shared test env, with the guest AI limiter open or closed. */
+  const env = (guestAi = true) => ({
+    ...testEnv(database),
+    GUEST_AI_RATE_LIMITER: { limit: async () => ({ success: guestAi }) },
+  })
 
   function requestBreakdown() {
     const taskId = '00000000-0000-4000-8000-000000000001'
@@ -74,14 +71,7 @@ describe('task HTTP routes', () => {
           detail: 3,
         }),
       },
-      {
-        database,
-        BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
-        BETTER_AUTH_URL: 'http://localhost:8787',
-        TRUSTED_ORIGIN: 'http://localhost:5173',
-        OPENROUTER_API_KEY: 'test-key',
-        ...rateLimiters(),
-      },
+      env(),
     )
   }
 
@@ -89,14 +79,7 @@ describe('task HTTP routes', () => {
     const response = await app.request(
       '/api/tasks',
       { headers: { 'cf-ray': 'auth-request-id' } },
-      {
-        database,
-        BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
-        BETTER_AUTH_URL: 'http://localhost:8787',
-        TRUSTED_ORIGIN: 'http://localhost:5173',
-        OPENROUTER_API_KEY: 'test-key',
-        ...rateLimiters(),
-      },
+      env(),
     )
     const body: unknown = await response.json()
 
@@ -114,26 +97,19 @@ describe('task HTTP routes', () => {
   })
 
   test('loads task trees for the authenticated user', async () => {
-    const env = {
-      database,
-      BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
-      BETTER_AUTH_URL: 'http://localhost:8787',
-      TRUSTED_ORIGIN: 'http://localhost:5173',
-      OPENROUTER_API_KEY: 'test-key',
-      ...rateLimiters(),
-    }
+    const bindings = env()
     const registration = await app.request(
       '/api/auth/sign-up/email',
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json', origin: env.TRUSTED_ORIGIN },
+        headers: { 'content-type': 'application/json', origin: bindings.TRUSTED_ORIGIN },
         body: JSON.stringify({
           name: 'Test User',
           email: 'test@example.com',
           password: 'test-password-123',
         }),
       },
-      env,
+      bindings,
     )
     const cookie = registration.headers.get('set-cookie')?.split(';')[0]
     expect(registration.status).toBe(200)
@@ -148,7 +124,7 @@ describe('task HTTP routes', () => {
         headers: { cookie, 'content-type': 'application/json' },
         body: '{}',
       },
-      env,
+      bindings,
     )
     expect(invalidResponse.status).toBe(400)
     expect(invalidResponse.headers.get('content-type')).toStartWith('application/problem+json')
@@ -171,11 +147,11 @@ describe('task HTTP routes', () => {
           children: [],
         }),
       },
-      env,
+      bindings,
     )
     expect(saveResponse.status).toBe(200)
 
-    const response = await app.request('/api/tasks', { headers: { cookie } }, env)
+    const response = await app.request('/api/tasks', { headers: { cookie } }, bindings)
     const body: unknown = await response.json()
 
     expect(response.status).toBe(200)
@@ -192,27 +168,14 @@ describe('task HTTP routes', () => {
   })
 
   test('allows guest AI drafts but still rate limits them before validation', async () => {
-    const baseEnv = {
-      database,
-      BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
-      BETTER_AUTH_URL: 'http://localhost:8787',
-      TRUSTED_ORIGIN: 'http://localhost:5173',
-      OPENROUTER_API_KEY: 'test-key',
-    }
     const request = {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'cf-connecting-ip': '192.0.2.1' },
       body: '{}',
     }
 
-    const invalidResponse = await app.request('/api/tasks/proposals/breakdown', request, {
-      ...baseEnv,
-      ...rateLimiters(),
-    })
-    const limitedResponse = await app.request('/api/tasks/proposals/breakdown', request, {
-      ...baseEnv,
-      ...rateLimiters(false),
-    })
+    const invalidResponse = await app.request('/api/tasks/proposals/breakdown', request, env())
+    const limitedResponse = await app.request('/api/tasks/proposals/breakdown', request, env(false))
 
     expect(invalidResponse.status).toBe(400)
     expect(limitedResponse.status).toBe(429)

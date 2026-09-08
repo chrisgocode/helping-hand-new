@@ -57,3 +57,19 @@ test('returns typed Problem Details for API failures', async () => {
   expect(error?.title).toBe('Authentication required')
   expect(error?.retryable).toBe(false)
 })
+
+test('sends a recipient bearer token on every request', async () => {
+  let request: Request | undefined
+  const client = createApiClient({
+    baseUrl: 'https://api.example.test',
+    headers: { Authorization: 'Bearer recipient-session-token' },
+    fetch: async (input) => {
+      request = input
+      return Response.json([])
+    },
+  })
+
+  await client.GET('/api/recipient/tasks')
+
+  expect(request?.headers.get('authorization')).toBe('Bearer recipient-session-token')
+})

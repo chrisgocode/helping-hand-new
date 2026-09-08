@@ -1,5 +1,27 @@
 import { convertV4MiniflareOptions, Miniflare } from 'miniflare'
 
+/**
+ * Splits a migration the way Wrangler does. A trigger body carries its own
+ * semicolons, so it stays one statement until its closing `END`.
+ */
+function splitStatements(migration: string) {
+  const statements: string[] = []
+  let buffer = ''
+
+  for (const fragment of migration.split(';')) {
+    buffer += fragment
+    const statement = buffer.trim()
+    if (/create\s+trigger/i.test(statement) && !/\bend$/i.test(statement)) {
+      buffer += ';'
+      continue
+    }
+    if (statement) statements.push(statement)
+    buffer = ''
+  }
+
+  return statements
+}
+
 export async function createTestDatabase() {
   const miniflare = new Miniflare(
     convertV4MiniflareOptions({
@@ -18,13 +40,7 @@ export async function createTestDatabase() {
 
   for (const file of migrationFiles.sort()) {
     const migration = await Bun.file(new URL(file, migrationsDirectory)).text()
-    await database.batch(
-      migration
-        .split(';')
-        .map((statement) => statement.trim())
-        .filter(Boolean)
-        .map((statement) => database.prepare(statement)),
-    )
+    await database.batch(splitStatements(migration).map((statement) => database.prepare(statement)))
   }
 
   return { database, miniflare }

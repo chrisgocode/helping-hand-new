@@ -19,6 +19,8 @@
   "secrets": {
     "required": ["BETTER_AUTH_SECRET", "OPENROUTER_API_KEY"]
   },
+  // Hourly bounded cleanup of expired enrollments and uncollected sessions.
+  "triggers": { "crons": ["0 * * * *"] },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
@@ -54,6 +56,11 @@
       "name": "GUEST_AI_RATE_LIMITER",
       "namespace_id": "1004",
       "simple": { "limit": 5, "period": 60 }
+    },
+    {
+      "name": "ENROLLMENT_RATE_LIMITER",
+      "namespace_id": "1005",
+      "simple": { "limit": 60, "period": 60 }
     }
   ],
   "d1_databases": [

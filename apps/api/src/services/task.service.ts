@@ -11,18 +11,7 @@ import {
   taskTreeDraftSchema,
 } from '@helping-hand/schemas'
 import type { TaskAi } from './task-ai'
-
-type TaskRow = {
-  id: string
-  parentId: string | null
-  categoryId: string | null
-  title: string
-  position: number
-  durationSeconds: number | null
-  revision: number
-  createdAt: string
-  rowId: number
-}
+import { buildTaskTrees, TASK_TREE_COLUMNS, type TaskRow } from './task-tree'
 
 type TaskServiceOptions = {
   database: D1Database
@@ -104,51 +93,11 @@ export class TaskService {
 
   async getTaskTrees(userId: string): Promise<TaskTree[]> {
     const { results } = await this.#database
-      .prepare(
-        'SELECT id, parentId, categoryId, title, position, durationSeconds, revision, createdAt, rowid AS rowId FROM task WHERE userId = ?',
-      )
+      .prepare(`SELECT ${TASK_TREE_COLUMNS} FROM task WHERE userId = ?`)
       .bind(userId)
       .all<TaskRow>()
 
-    const rows = new Map(results.map((row) => [row.id, row]))
-    const children = new Map<string, TaskRow[]>()
-    const roots: TaskRow[] = []
-
-    for (const row of results) {
-      if (row.parentId === null) {
-        roots.push(row)
-        continue
-      }
-
-      if (!rows.has(row.parentId)) throw new Error('Task tree contains an orphaned task')
-      const siblings = children.get(row.parentId) ?? []
-      siblings.push(row)
-      children.set(row.parentId, siblings)
-    }
-
-    for (const siblings of children.values()) {
-      siblings.sort(
-        (left, right) => left.position - right.position || left.id.localeCompare(right.id),
-      )
-    }
-
-    const build = (row: TaskRow): TaskNode => {
-      const descendants = (children.get(row.id) ?? []).map(build)
-      const durationSeconds =
-        descendants.length === 0
-          ? row.durationSeconds
-          : descendants.every((child) => child.durationSeconds !== null)
-            ? descendants.reduce((total, child) => total + (child.durationSeconds ?? 0), 0)
-            : null
-
-      return { id: row.id, title: row.title, durationSeconds, children: descendants }
-    }
-
-    return roots
-      .sort(
-        (left, right) => right.createdAt.localeCompare(left.createdAt) || right.rowId - left.rowId,
-      )
-      .map((root) => ({ ...build(root), categoryId: root.categoryId, revision: root.revision }))
+    return buildTaskTrees(results)
   }
 
   async saveTaskTree(userId: string, input: TaskTreeDraft): Promise<TaskTree> {
