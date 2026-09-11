@@ -4,7 +4,6 @@ import { PROBLEM } from '../lib/problem'
 import {
   approveEnrollment,
   cancelEnrollment,
-  decodeEnrollmentPayload,
   encodeEnrollmentPayload,
   getEnrollment,
   issueEnrollment,
@@ -31,18 +30,10 @@ const problem = (status: number, type: string, headers?: Record<string, string>)
   }) as never
 
 describe('enrollment payload encoding', () => {
-  it('round-trips the payload the device has to read', () => {
-    const encoded = encodeEnrollmentPayload(payload)
-
-    expect(encoded).toBe(`{"version":1,"enrollmentId":"${enrollmentId}","secret":"${secret}"}`)
-    expect(decodeEnrollmentPayload(encoded)).toEqual(payload)
-  })
-
-  it('refuses anything that is not a payload this client understands', () => {
-    expect(decodeEnrollmentPayload('not json')).toBeNull()
-    expect(decodeEnrollmentPayload('null')).toBeNull()
-    expect(decodeEnrollmentPayload(JSON.stringify({ ...payload, version: 2 }))).toBeNull()
-    expect(decodeEnrollmentPayload(JSON.stringify({ version: 1, enrollmentId }))).toBeNull()
+  it('encodes the stable payload the device has to read', () => {
+    expect(encodeEnrollmentPayload(payload)).toBe(
+      `{"version":1,"enrollmentId":"${enrollmentId}","secret":"${secret}"}`,
+    )
   })
 })
 

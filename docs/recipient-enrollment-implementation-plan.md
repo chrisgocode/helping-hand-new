@@ -187,9 +187,11 @@ Implement every behavioral change using the `tdd` skill, in vertical slices:
 2. Implement only enough behavior through `routes → controller → service → D1` to make that test pass.
 3. Run the test and relevant regression checks, then choose the next behavior based on what the completed slice revealed.
 
-The agreed test seams are the real HTTP interface and the public service interfaces. HTTP tests exercise the full data flow against Miniflare D1. Service tests verify domain behavior through service results, not private methods or database queries used as assertion shortcuts. Confirm any additional seam before writing tests at it.
+Backend domain, persistence, authorization, and security behavior use the real HTTP interface or public service interfaces as their test seams. HTTP tests exercise the full data flow against Miniflare D1. Service tests verify domain behavior through service results, not private methods or database queries used as assertion shortcuts.
 
-Do not write all tests before implementing, or implement the whole feature before writing tests. Do not mock controllers or services to test their own interactions. Mocks are limited to external dependencies such as the clock, logging output, and storage failures; use real D1 for normal persistence and transaction checks. Keep structural refactoring in the review stage, separate from the red → green implementation cycle.
+Web behavior uses rendered pages and public hook interfaces as its test seams. Workspace modules are transport adapters and may be replaced with deterministic test adapters to exercise failures, timing, and race ordering. Do not mock React, router internals, or implementation state. Keep representative browser E2E coverage for the vertical caretaker flow; individual frontend race and failure-state tests do not need to traverse D1.
+
+Do not write all tests before implementing, or implement the whole feature before writing tests. Do not mock controllers or services to test their own interactions. Backend mocks are limited to external dependencies such as the clock, logging output, and storage failures; use real D1 for normal persistence and transaction checks. Keep structural refactoring in the review stage, separate from the red → green implementation cycle.
 
 Use the existing Bun tests and Miniflare D1 setup. Exercise the module interface and real HTTP requests; avoid tests that only mock permission or transaction behavior.
 

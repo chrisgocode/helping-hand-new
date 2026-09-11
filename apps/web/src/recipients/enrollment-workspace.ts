@@ -38,8 +38,8 @@ function rateLimited(response: Response, message: string) {
 
 /**
  * The QR symbol carries the payload object verbatim, with this key order. The
- * device client decodes it with the matching reader below, so the two halves
- * only agree if this stays fixed.
+ * recipient-device decoding requirements live in the client contract, so this
+ * representation must stay fixed.
  */
 export function encodeEnrollmentPayload(payload: EnrollmentPayload): string {
   return JSON.stringify({
@@ -47,19 +47,6 @@ export function encodeEnrollmentPayload(payload: EnrollmentPayload): string {
     enrollmentId: payload.enrollmentId,
     secret: payload.secret,
   })
-}
-
-/** The executable half of the encoding contract; the device client mirrors it. */
-export function decodeEnrollmentPayload(encoded: string): EnrollmentPayload | null {
-  try {
-    const parsed: unknown = JSON.parse(encoded)
-    if (typeof parsed !== 'object' || parsed === null) return null
-    const { version, enrollmentId, secret } = parsed as Record<string, unknown>
-    if (version !== 1 || typeof enrollmentId !== 'string' || typeof secret !== 'string') return null
-    return { version, enrollmentId, secret }
-  } catch {
-    return null
-  }
 }
 
 export async function issueEnrollment(recipientId: string): Promise<IssuedEnrollment> {

@@ -142,7 +142,7 @@ describe('RecipientDetailPage', () => {
 
     const row = await screen.findByRole('listitem')
     expect(within(row).getByText('Do laundry')).toBeTruthy()
-    expect(within(row).getByText('1 top-level step')).toBeTruthy()
+    expect(within(row).getByText('1 top-level task')).toBeTruthy()
   })
 
   it('keeps an assignment whose task has left the library removable', async () => {

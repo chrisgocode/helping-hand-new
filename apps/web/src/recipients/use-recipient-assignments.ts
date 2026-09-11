@@ -19,6 +19,14 @@ type AssignmentState = {
   error: WorkspaceError | null
 }
 
+type AssignmentChange = {
+  action: AssignmentAction
+  taskId: string
+  optimistic: (assignments: RecipientAssignment[]) => RecipientAssignment[]
+  request: () => Promise<void>
+  announcement: string
+}
+
 export function useRecipientAssignments(recipientId: string) {
   const requestId = useRef(0)
   const inFlight = useRef(false)
@@ -70,20 +78,20 @@ export function useRecipientAssignments(recipientId: string) {
     setState((current) => ({ ...current, assignments }))
   }, [])
 
-  const assign = useCallback(
-    async (taskId: string, title: string, recipientName: string): Promise<boolean> => {
+  const mutate = useCallback(
+    async (change: AssignmentChange): Promise<boolean> => {
       if (inFlight.current) return false
       inFlight.current = true
       setAnnouncement('')
-      setMutation({ status: 'pending', action: 'assign', taskId })
+      setMutation({ status: 'pending', action: change.action, taskId: change.taskId })
 
       const previous = assignmentsRef.current
-      commit([...previous, { rootTaskId: taskId, createdAt: new Date().toISOString() }])
+      commit(change.optimistic(previous))
 
       try {
-        await assignRecipientTask(recipientId, taskId)
+        await change.request()
         setMutation({ status: 'idle' })
-        setAnnouncement(`${title} assigned to ${recipientName}.`)
+        setAnnouncement(change.announcement)
         return true
       } catch (cause) {
         commit(previous)
@@ -91,43 +99,41 @@ export function useRecipientAssignments(recipientId: string) {
           cause instanceof WorkspaceError
             ? cause
             : new WorkspaceError('unexpected', false, { cause })
-        setMutation({ status: 'failed', action: 'assign', taskId, error })
+        setMutation({ status: 'failed', action: change.action, taskId: change.taskId, error })
         return false
       } finally {
         inFlight.current = false
       }
     },
-    [commit, recipientId],
+    [commit],
+  )
+
+  const assign = useCallback(
+    (taskId: string, title: string, recipientName: string) =>
+      mutate({
+        action: 'assign',
+        taskId,
+        optimistic: (assignments) => [
+          ...assignments,
+          { rootTaskId: taskId, createdAt: new Date().toISOString() },
+        ],
+        request: () => assignRecipientTask(recipientId, taskId),
+        announcement: `${title} assigned to ${recipientName}.`,
+      }),
+    [mutate, recipientId],
   )
 
   const unassign = useCallback(
-    async (taskId: string, title: string, recipientName: string): Promise<boolean> => {
-      if (inFlight.current) return false
-      inFlight.current = true
-      setAnnouncement('')
-      setMutation({ status: 'pending', action: 'unassign', taskId })
-
-      const previous = assignmentsRef.current
-      commit(previous.filter((assignment) => assignment.rootTaskId !== taskId))
-
-      try {
-        await unassignRecipientTask(recipientId, taskId)
-        setMutation({ status: 'idle' })
-        setAnnouncement(`${title} removed from ${recipientName}.`)
-        return true
-      } catch (cause) {
-        commit(previous)
-        const error =
-          cause instanceof WorkspaceError
-            ? cause
-            : new WorkspaceError('unexpected', false, { cause })
-        setMutation({ status: 'failed', action: 'unassign', taskId, error })
-        return false
-      } finally {
-        inFlight.current = false
-      }
-    },
-    [commit, recipientId],
+    (taskId: string, title: string, recipientName: string) =>
+      mutate({
+        action: 'unassign',
+        taskId,
+        optimistic: (assignments) =>
+          assignments.filter((assignment) => assignment.rootTaskId !== taskId),
+        request: () => unassignRecipientTask(recipientId, taskId),
+        announcement: `${title} removed from ${recipientName}.`,
+      }),
+    [mutate, recipientId],
   )
 
   const dismissMutationError = useCallback(() => setMutation({ status: 'idle' }), [])

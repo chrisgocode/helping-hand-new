@@ -59,6 +59,32 @@ describe('useRecipientAssignments', () => {
     expect(result.current.announcement).toBe('Make coffee assigned to Alex.')
   })
 
+  it('refuses another mutation while one is pending', async () => {
+    let settle: () => void = () => {}
+    assign.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(undefined)
+      }),
+    )
+    const { result } = renderHook(() => useRecipientAssignments(recipientId))
+    await act(async () => {})
+
+    let pending: Promise<boolean> | undefined
+    let accepted = true
+    await act(async () => {
+      pending = result.current.assign(coffeeId, 'Make coffee', 'Alex')
+      accepted = await result.current.unassign(laundryId, 'Do laundry', 'Alex')
+    })
+
+    expect(accepted).toBe(false)
+    expect(unassign).not.toHaveBeenCalled()
+
+    await act(async () => {
+      settle()
+      await pending
+    })
+  })
+
   it('rolls an assignment back when the request fails', async () => {
     assign.mockRejectedValue(new WorkspaceError('conflict', false))
     const { result } = renderHook(() => useRecipientAssignments(recipientId))

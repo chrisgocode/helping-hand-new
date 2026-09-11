@@ -440,6 +440,46 @@ describe('recipient HTTP routes', () => {
     ).toBe(404)
   })
 
+  test('frees a recipient-limit slot after permanent deletion', async () => {
+    const { RECIPIENT_LIMITS } = await import('@helping-hand/schemas')
+    const cookie = await signInCaretaker(env)
+    const recipients = []
+
+    for (let index = 0; index < RECIPIENT_LIMITS.maxRecipientsPerCaretaker; index += 1) {
+      recipients.push(await createRecipient(env, cookie, `Recipient ${index + 1}`))
+    }
+
+    const full = await json(
+      env,
+      '/api/recipients',
+      'POST',
+      { displayName: 'One too many' },
+      { cookie },
+    )
+    expect(full.status).toBe(409)
+    expect(await full.json()).toMatchObject({
+      type: 'urn:helping-hand:problem:conflict',
+    })
+
+    const deleted = recipients[0]
+    expect(
+      (
+        await request(env, `/api/recipients/${deleted.id}`, 'DELETE', {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(204)
+
+    const replacement = await createRecipient(env, cookie, 'Replacement')
+    const listed = (await (
+      await request(env, '/api/recipients', 'GET', { headers: { cookie } })
+    ).json()) as { id: string }[]
+
+    expect(listed).toHaveLength(RECIPIENT_LIMITS.maxRecipientsPerCaretaker)
+    expect(listed.some(({ id }) => id === deleted.id)).toBe(false)
+    expect(listed.some(({ id }) => id === replacement.id)).toBe(true)
+  })
+
   test('keeps caretaker sign-in, tasks, categories, and guest AI behavior working', async () => {
     const cookie = await signInCaretaker(env)
     expect((await request(env, '/api/tasks', 'GET', { headers: { cookie } })).status).toBe(200)

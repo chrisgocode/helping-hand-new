@@ -125,7 +125,7 @@ export function AssignmentPicker({
                   {task && (
                     <span className="assignment-meta">
                       {task.children.length}{' '}
-                      {task.children.length === 1 ? 'top-level step' : 'top-level steps'}
+                      {task.children.length === 1 ? 'top-level task' : 'top-level tasks'}
                     </span>
                   )}
                 </div>
