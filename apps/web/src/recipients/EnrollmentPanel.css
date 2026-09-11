@@ -1,0 +1,186 @@
+.enrollment-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+/*
+ * A live enrollment reads as two things side by side: the artifact the device
+ * looks at, and the sequence the caretaker follows.
+ */
+.enrollment-live {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 40px;
+  padding: 28px;
+}
+
+.enrollment-copy {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+.enrollment-settled {
+  gap: 20px;
+  padding: 28px;
+}
+
+/* The 240px slot holds the QR, then the matching code, so nothing shifts. */
+.enrollment-artifact {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  aspect-ratio: 1;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.enrollment-qr-skeleton {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+
+.enrollment-track {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
+}
+
+.enrollment-live-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.enrollment-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  width: 100%;
+}
+
+.enrollment-step {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 2px;
+}
+
+/* The mark echoes the three bars of the brand mark. */
+.enrollment-step-mark {
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 3px;
+  border: 2px solid var(--line);
+  background: transparent;
+}
+
+.enrollment-step.current .enrollment-step-mark {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.enrollment-step.done .enrollment-step-mark {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
+.enrollment-step-title {
+  font:
+    700 15px Manrope,
+    sans-serif;
+  color: var(--muted);
+}
+
+.enrollment-step.current .enrollment-step-title {
+  color: var(--ink);
+}
+
+.enrollment-step-detail {
+  grid-column: 2;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.enrollment-step.ahead {
+  opacity: 0.6;
+}
+
+.enrollment-status {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.matching-code {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: center;
+}
+
+.enrollment-countdown {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.enrollment-notice {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--coral) 35%, var(--line));
+  background: color-mix(in srgb, var(--coral) 10%, var(--surface));
+  color: var(--ink);
+  max-width: 52ch;
+}
+
+.enrollment-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .enrollment-live {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .enrollment-artifact {
+    justify-self: center;
+    width: 100%;
+    max-width: 260px;
+  }
+}

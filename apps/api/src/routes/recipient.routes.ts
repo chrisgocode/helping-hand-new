@@ -9,6 +9,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import {
   assignRecipientTask,
   createRecipient,
+  deleteRecipient,
   getAssignedTaskTrees,
   getRecipientIdentity,
   getRecipients,
@@ -21,6 +22,7 @@ import {
 import {
   assignRecipientTaskRoute,
   createRecipientRoute,
+  deleteRecipientRoute,
   getAssignedTaskTreesRoute,
   getRecipientIdentityRoute,
   getRecipientsRoute,
@@ -41,6 +43,7 @@ recipientRoutes.openAPIRegistry.register('ProblemDetails', problemDetailsSchema)
 recipientRoutes.openapi(createRecipientRoute, createRecipient)
 recipientRoutes.openapi(getRecipientsRoute, getRecipients)
 recipientRoutes.openapi(updateRecipientRoute, updateRecipient)
+recipientRoutes.openapi(deleteRecipientRoute, deleteRecipient)
 recipientRoutes.openapi(getRecipientTasksRoute, getRecipientTasks)
 recipientRoutes.openapi(assignRecipientTaskRoute, assignRecipientTask)
 recipientRoutes.openapi(unassignRecipientTaskRoute, unassignRecipientTask)

@@ -207,6 +207,11 @@ export class RecipientService {
     return this.getRecipient(caretakerId, recipientId)
   }
 
+  async deleteRecipient(caretakerId: string, recipientId: string): Promise<void> {
+    const recipient = await this.#ownedRecipient(caretakerId, recipientId)
+    await this.#recipientAuth.deleteUser(recipient.userId)
+  }
+
   async revokeRecipientAccess(caretakerId: string, recipientId: string): Promise<void> {
     const recipient = await this.#ownedRecipient(caretakerId, recipientId)
     await this.#database.batch(this.#revocationStatements(recipient))

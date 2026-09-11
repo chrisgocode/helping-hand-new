@@ -1,0 +1,13 @@
+.enrollment-qr {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  line-height: 0;
+}
+
+.enrollment-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

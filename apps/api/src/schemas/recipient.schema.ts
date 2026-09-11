@@ -95,6 +95,24 @@ export const updateRecipientRoute = createRoute({
   },
 })
 
+export const deleteRecipientRoute = createRoute({
+  method: 'delete',
+  path: '/{recipientId}',
+  operationId: 'deleteRecipient',
+  tags: ['Recipients'],
+  summary: 'Permanently delete a recipient',
+  description:
+    'Deletes the recipient identity, device access, assignments, and enrollments. Assigned task trees are preserved.',
+  security: caretakerSecurity,
+  middleware: [requireCaretaker] as const,
+  request: { params: recipientIdParamsSchema },
+  responses: {
+    204: { description: 'The recipient was deleted' },
+    404: problemResponse('The recipient does not exist'),
+    ...caretakerErrors(),
+  },
+})
+
 export const getRecipientTasksRoute = createRoute({
   method: 'get',
   path: '/{recipientId}/tasks',

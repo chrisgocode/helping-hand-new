@@ -36,3 +36,7 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# headroom
+.serena/
+.headroom*

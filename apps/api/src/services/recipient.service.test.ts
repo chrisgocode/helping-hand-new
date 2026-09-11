@@ -73,6 +73,12 @@ describe('RecipientService', () => {
     expect(
       recipients.createRecipient('caretaker-1', { displayName: 'One too many' }),
     ).rejects.toMatchObject({ code: 'conflict' })
+
+    const [first] = await recipients.listRecipients('caretaker-1')
+    await recipients.deleteRecipient('caretaker-1', first.id)
+    expect(
+      await recipients.createRecipient('caretaker-1', { displayName: 'Replacement' }),
+    ).toMatchObject({ displayName: 'Replacement' })
   })
 
   test('leaves no identity behind when the recipient profile cannot be stored', async () => {

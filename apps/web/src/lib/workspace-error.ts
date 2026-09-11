@@ -3,6 +3,7 @@ export type WorkspaceFailureKind =
   | 'invalid'
   | 'not_found'
   | 'conflict'
+  | 'gone'
   | 'rate_limited'
   | 'unavailable'
   | 'ai_timeout'
@@ -15,6 +16,7 @@ const failureMessages: Record<WorkspaceFailureKind, string> = {
   invalid: 'Review your changes and try again.',
   not_found: 'The requested item could not be found.',
   conflict: 'This information changed before it could be saved.',
+  gone: 'This is no longer available.',
   rate_limited: 'Too many requests were made. Please wait a moment and try again.',
   unavailable: 'The service is temporarily unavailable.',
   ai_timeout: 'AI generation took too long. Try again.',
@@ -40,6 +42,7 @@ export function failureForStatus(status: number) {
   if (status === 400) return new WorkspaceError('invalid', false)
   if (status === 404) return new WorkspaceError('not_found', false)
   if (status === 409) return new WorkspaceError('conflict', false)
+  if (status === 410) return new WorkspaceError('gone', false)
   if (status === 429) return new WorkspaceError('rate_limited', true)
   if (status >= 500) return new WorkspaceError('unavailable', true)
   return new WorkspaceError('unexpected', false)

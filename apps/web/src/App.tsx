@@ -3,6 +3,8 @@ import './App.css'
 import { AppShell } from './app/AppShell'
 import { AuthPage } from './auth/AuthPage'
 import { RequireGuest, RequireSession } from './auth/RequireSession'
+import { RecipientDetailPage } from './recipients/RecipientDetailPage'
+import { RecipientsPage } from './recipients/RecipientsPage'
 import { TaskEditorPage } from './tasks/TaskEditorPage'
 import { TaskLibraryPage } from './tasks/TaskLibraryPage'
 
@@ -23,6 +25,8 @@ const router = createBrowserRouter([
           { path: '/tasks', element: <TaskLibraryPage /> },
           { path: '/tasks/new', element: <TaskEditorPage /> },
           { path: '/tasks/:rootId/edit', element: <TaskEditorPage saved /> },
+          { path: '/recipients', element: <RecipientsPage /> },
+          { path: '/recipients/:recipientId', element: <RecipientDetailPage /> },
         ],
       },
     ],

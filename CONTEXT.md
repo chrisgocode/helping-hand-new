@@ -42,3 +42,33 @@ _Avoid_: Automatically persisted AI change, replacement task tree
 **Guided session**:
 A temporary traversal of a task tree that shows one actionable task at a time. Ending the session clears its current position and does not change the saved task tree.
 _Avoid_: Permanent progress, task completion
+
+## Recipient access
+
+**Caretaker**:
+A person who signs in with their own credentials, builds task trees, and manages recipients. Every caretaker account owns its recipients, task trees, and categories.
+_Avoid_: Carer, owner, admin, parent account
+
+**Recipient**:
+A person who follows assigned task trees on their own device and never edits them. A recipient belongs to exactly one caretaker and has a credential-free identity that only a caretaker can create.
+_Avoid_: Patient, client, child account, sub-user
+
+**Task assignment**:
+A caretaker's grant of one root task, and therefore its complete task tree, to one recipient. The same task tree can be assigned to several recipients, and editing it changes what every assigned recipient sees.
+_Avoid_: Share, publish, permission grant
+
+**Enrollment**:
+The one-time exchange that signs a recipient's device in: the caretaker displays a QR code, the device claims it, both screens show the same confirmation code, and the caretaker approves.
+_Avoid_: Pairing, registration, invitation, login link
+
+**Matching code**:
+The short code shown on both devices during an enrollment so the caretaker can confirm they are approving the device in front of them. It confirms; it never authenticates.
+_Avoid_: PIN, OTP, verification code
+
+**Device replacement**:
+A new enrollment for a recipient who already has a device. Approving it revokes the previous device and preserves the recipient profile and its assignments.
+_Avoid_: Re-pairing, transfer, migration
+
+**Access revocation**:
+A caretaker ending a recipient device's access, either explicitly or by disabling the recipient. Assignments survive, and re-enabling a recipient alone does not restore the old device.
+_Avoid_: Unpair, ban, delete recipient

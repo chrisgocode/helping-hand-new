@@ -6335,6 +6335,260 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteRecipient",
+        "tags": [
+          "Recipients"
+        ],
+        "summary": "Permanently delete a recipient",
+        "description": "Deletes the recipient identity, device access, assignments, and enrollments. Assigned task trees are preserved.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "recipientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The recipient was deleted"
+          },
+          "401": {
+            "description": "Authentication is required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "instance": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "retryable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recipient device cannot perform this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "instance": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "retryable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The recipient does not exist",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "instance": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "retryable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The request rate limit was exceeded",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "instance": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "retryable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The request could not be completed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "detail": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "instance": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "retryable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/recipients/{recipientId}/tasks": {
