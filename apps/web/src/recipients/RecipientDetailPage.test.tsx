@@ -1,9 +1,11 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { authClient } from '../auth/auth-client'
 import { WorkspaceError } from '../lib/workspace-error'
 import { listTaskTrees } from '../tasks/task-workspace'
+import { issueEnrollment } from './enrollment-workspace'
 import { RecipientDetailPage } from './RecipientDetailPage'
 import {
   assignRecipientTask,
@@ -12,6 +14,7 @@ import {
   listRecipients,
   revokeRecipientAccess,
   unassignRecipientTask,
+  updateRecipient,
 } from './recipient-workspace'
 
 vi.mock('./recipient-workspace', async (importOriginal) => ({
@@ -22,11 +25,17 @@ vi.mock('./recipient-workspace', async (importOriginal) => ({
   listRecipients: vi.fn(),
   revokeRecipientAccess: vi.fn(),
   unassignRecipientTask: vi.fn(),
+  updateRecipient: vi.fn(),
 }))
 
 vi.mock('../tasks/task-workspace', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../tasks/task-workspace')>()),
   listTaskTrees: vi.fn(),
+}))
+
+vi.mock('./enrollment-workspace', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./enrollment-workspace')>()),
+  issueEnrollment: vi.fn(),
 }))
 
 vi.mock('../auth/auth-client', () => ({
@@ -40,6 +49,9 @@ const getRecipients = vi.mocked(listRecipients)
 const getTasks = vi.mocked(listTaskTrees)
 const revoke = vi.mocked(revokeRecipientAccess)
 const unassign = vi.mocked(unassignRecipientTask)
+const update = vi.mocked(updateRecipient)
+const issue = vi.mocked(issueEnrollment)
+const signOut = vi.mocked(authClient.signOut)
 
 const recipientId = '11111111-1111-4111-8111-111111111111'
 const coffeeId = 'd9cb5e16-c35e-4c60-8e28-26aa744034ee'
@@ -96,6 +108,9 @@ describe('RecipientDetailPage', () => {
     getTasks.mockReset()
     revoke.mockReset()
     unassign.mockReset()
+    update.mockReset()
+    issue.mockReset()
+    signOut.mockClear()
     getRecipients.mockResolvedValue([alex])
     getAssignments.mockResolvedValue([
       { rootTaskId: laundryId, createdAt: '2026-09-02T12:00:00.000Z' },
@@ -109,6 +124,17 @@ describe('RecipientDetailPage', () => {
     renderPage(goneId)
 
     expect(await screen.findByRole('heading', { name: 'Recipient not found' })).toBeTruthy()
+  })
+
+  it('signs out when enrollment reports an expired caretaker session', async () => {
+    issue.mockRejectedValue(new WorkspaceError('unauthenticated', false))
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Replace this device' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    expect(signOut).toHaveBeenCalledTimes(1)
   })
 
   it('names assigned tasks using the caretaker task library', async () => {
@@ -164,6 +190,20 @@ describe('RecipientDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'No device is enrolled' })).toBeTruthy()
   })
 
+  it('closes the revoke modal with Escape and restores focus', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const trigger = await screen.findByRole('button', { name: 'Revoke device access' })
+    await user.click(trigger)
+    expect(screen.getByRole('alertdialog', { name: "End this device's access?" })).toBeTruthy()
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('alertdialog', { name: "End this device's access?" })).toBeNull()
+    await waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+
   it('permanently deletes a recipient only after confirmation', async () => {
     removeRecipient.mockResolvedValue(undefined)
     const user = userEvent.setup()
@@ -195,15 +235,83 @@ describe('RecipientDetailPage', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger))
   })
 
-  it('keeps the recipient page when deletion fails', async () => {
-    removeRecipient.mockRejectedValue(new WorkspaceError('unavailable', true))
+  it('does not present an unrelated mutation as deletion', async () => {
+    let resolveRename!: (value: typeof alex) => void
+    update.mockImplementationOnce(() => new Promise((resolve) => (resolveRename = resolve)))
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Recipient name'))
+    await user.type(screen.getByLabelText('Recipient name'), 'Alexander')
+    await user.click(screen.getByRole('button', { name: 'Save name' }))
+    await user.click(screen.getByRole('button', { name: 'Delete recipient' }))
+
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Alex permanently?' })
+    expect(
+      within(dialog).getByRole('button', { name: 'Delete Alex' }).hasAttribute('disabled'),
+    ).toBe(false)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('alertdialog', { name: 'Delete Alex permanently?' })).toBeNull()
+
+    await act(async () => resolveRename({ ...alex, displayName: 'Alexander' }))
+  })
+
+  it('shows a deletion failure in the modal and lets the caretaker retry', async () => {
+    removeRecipient
+      .mockRejectedValueOnce(new WorkspaceError('unavailable', true))
+      .mockResolvedValueOnce(undefined)
     const user = userEvent.setup()
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Delete recipient' }))
     await user.click(screen.getByRole('button', { name: 'Delete Alex' }))
 
-    expect(await screen.findByText('That change could not be saved.')).toBeTruthy()
-    expect(screen.getByRole('alertdialog', { name: 'Delete Alex permanently?' })).toBeTruthy()
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Alex permanently?' })
+    const failure = await within(dialog).findByRole('alert')
+    expect(within(failure).getByText('The service is temporarily unavailable.')).toBeTruthy()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Try deleting again' }))
+
+    expect(removeRecipient).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('heading', { name: 'All recipients' })).toBeTruthy()
+  })
+
+  it('clears a deletion failure when the modal closes', async () => {
+    removeRecipient.mockRejectedValueOnce(new WorkspaceError('unavailable', true))
+    const user = userEvent.setup()
+    renderPage()
+
+    const trigger = await screen.findByRole('button', { name: 'Delete recipient' })
+    await user.click(trigger)
+    await user.click(screen.getByRole('button', { name: 'Delete Alex' }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Keep recipient' }))
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Alex permanently?' })
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+    expect(within(dialog).getByRole('button', { name: 'Delete Alex' })).toBeTruthy()
+  })
+
+  it('shows a revoke failure in the modal and lets the caretaker retry', async () => {
+    revoke
+      .mockRejectedValueOnce(new WorkspaceError('unavailable', true))
+      .mockResolvedValueOnce(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke device access' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke access' }))
+
+    const dialog = screen.getByRole('alertdialog', { name: "End this device's access?" })
+    const failure = await within(dialog).findByRole('alert')
+    expect(within(failure).getByText('The service is temporarily unavailable.')).toBeTruthy()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Try revoking access' }))
+
+    expect(revoke).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('heading', { name: 'No device is enrolled' })).toBeTruthy()
   })
 })

@@ -1,5 +1,6 @@
 import { ENROLLMENT_TIMINGS } from '@helping-hand/schemas'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PROBLEM } from '../lib/problem'
 import { WorkspaceError } from '../lib/workspace-error'
 import {
   approveEnrollment,
@@ -40,7 +41,7 @@ export type EnrollmentNotice = {
   message: string
 }
 
-type PollTarget = { enrollmentId: string; expiresAt: string }
+type PollTarget = { enrollmentId: string; expiresAt: string | null }
 
 function asWorkspaceError(cause: unknown) {
   return cause instanceof WorkspaceError
@@ -196,9 +197,13 @@ export function useEnrollment(
 
   const poll = useCallback(async () => {
     const current = target.current
-    if (!current || inFlight.current) return
+    if (!current) return
+    if (inFlight.current) {
+      schedule(delay.current)
+      return
+    }
 
-    if (Date.parse(current.expiresAt) <= Date.now()) {
+    if (current.expiresAt && Date.parse(current.expiresAt) <= Date.now()) {
       settle({ status: 'expired' })
       return
     }
@@ -219,13 +224,13 @@ export function useEnrollment(
     } finally {
       inFlight.current = false
     }
-  }, [applyStatus, handlePollFailure, settle])
+  }, [applyStatus, handlePollFailure, schedule, settle])
 
   pollRef.current = poll
 
   const issue = useCallback(async () => {
     if (!recipient) return
-    requestId.current += 1
+    const thisRequest = ++requestId.current
     stopPolling()
     delay.current = BASE_DELAY
     failureStreak.current = 0
@@ -236,6 +241,7 @@ export function useEnrollment(
 
     try {
       const issued = await issueEnrollment(recipient.id)
+      if (requestId.current !== thisRequest) return
       target.current = { enrollmentId: issued.id, expiresAt: issued.expiresAt }
       setPhase({
         status: 'showing-code',
@@ -246,6 +252,7 @@ export function useEnrollment(
       setAnnouncement('Waiting for the device to scan the code.')
       schedule(delay.current)
     } catch (cause) {
+      if (requestId.current !== thisRequest) return
       setPhase({ status: 'failed', error: asWorkspaceError(cause) })
     }
   }, [recipient, schedule, stopPolling])
@@ -253,22 +260,28 @@ export function useEnrollment(
   const approve = useCallback(async () => {
     if (phase.status !== 'awaiting-confirmation') return
     const { enrollmentId, matchingCode, expiresAt } = phase
-    requestId.current += 1
+    const thisRequest = ++requestId.current
     if (pollTimer.current !== null) window.clearTimeout(pollTimer.current)
     pollTimer.current = null
     setPhase({ status: 'approving', enrollmentId, matchingCode, expiresAt })
 
     try {
       await approveEnrollment(enrollmentId, matchingCode)
+      if (requestId.current !== thisRequest) return
       settle({ status: 'approved', enrollmentId }, 'The device is enrolled.')
     } catch (cause) {
+      if (requestId.current !== thisRequest) return
       const error = asWorkspaceError(cause)
 
       if (error.kind === 'gone') {
         settle({ status: 'expired' })
         return
       }
-      if (error.kind === 'conflict') {
+      if (
+        error.kind === 'conflict' &&
+        'problemType' in error &&
+        error.problemType === PROBLEM.enrollmentConflict
+      ) {
         // The code on screen is stale, so resync rather than lose the panel.
         setPhase({ status: 'awaiting-confirmation', enrollmentId, matchingCode, expiresAt })
         setNotice({ kind: 'stale-code', message: error.message })
@@ -283,7 +296,7 @@ export function useEnrollment(
   const cancel = useCallback(async () => {
     const enrollmentId =
       'enrollmentId' in phase ? phase.enrollmentId : (target.current?.enrollmentId ?? null)
-    requestId.current += 1
+    const thisRequest = ++requestId.current
     stopPolling()
 
     if (!enrollmentId) {
@@ -293,8 +306,10 @@ export function useEnrollment(
 
     try {
       await cancelEnrollment(enrollmentId)
+      if (requestId.current !== thisRequest) return
       settle({ status: 'cancelled' }, 'Enrollment cancelled.')
     } catch (cause) {
+      if (requestId.current !== thisRequest) return
       setPhase({ status: 'failed', error: asWorkspaceError(cause) })
     }
   }, [phase, settle, stopPolling])
@@ -317,7 +332,7 @@ export function useEnrollment(
     resuming.current = true
     target.current = {
       enrollmentId: pendingEnrollmentId,
-      expiresAt: new Date(Date.now() + BASE_DELAY).toISOString(),
+      expiresAt: null,
     }
     setPhase({ status: 'resuming', enrollmentId: pendingEnrollmentId })
     void pollRef.current()

@@ -38,23 +38,38 @@ export function RecipientDetailPage() {
   const tasks = useTaskLibrary()
   const recipient = library.recipients.find(({ id }) => id === recipientId) ?? null
   const enrollment = useEnrollment(recipient, { onSettled: library.refresh })
+  const deleting = library.mutation.status === 'pending' && library.mutation.action === 'delete'
+  const deleteError =
+    library.mutation.status === 'failed' && library.mutation.action === 'delete'
+      ? library.mutation.error
+      : null
+  const revoking = library.mutation.status === 'pending' && library.mutation.action === 'revoke'
+  const revokeError =
+    library.mutation.status === 'failed' && library.mutation.action === 'revoke'
+      ? library.mutation.error
+      : null
+  const enrollmentError = enrollment.phase.status === 'failed' ? enrollment.phase.error : null
+  const unauthenticated =
+    library.error?.kind === 'unauthenticated' ||
+    (library.mutation.status === 'failed' && library.mutation.error.kind === 'unauthenticated') ||
+    assignments.error?.kind === 'unauthenticated' ||
+    (assignments.mutation.status === 'failed' &&
+      assignments.mutation.error.kind === 'unauthenticated') ||
+    tasks.error?.kind === 'unauthenticated' ||
+    enrollmentError?.kind === 'unauthenticated'
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState('')
   const [confirmingRevoke, setConfirmingRevoke] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   useEffect(() => {
-    const unauthenticated =
-      library.error?.kind === 'unauthenticated' ||
-      assignments.error?.kind === 'unauthenticated' ||
-      tasks.error?.kind === 'unauthenticated'
     if (!unauthenticated) return
 
     void authClient
       .signOut()
       .catch(() => undefined)
       .finally(() => navigate('/sign-in', { replace: true }))
-  }, [assignments.error, library.error, navigate, tasks.error])
+  }, [navigate, unauthenticated])
 
   async function submitRename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -132,19 +147,21 @@ export function RecipientDetailPage() {
           >
             {recipient.isActive ? 'Disable recipient' : 'Enable recipient'}
           </button>
-          <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
+          <AlertDialog
+            open={confirmingDelete}
+            onOpenChange={(open) => {
+              setConfirmingDelete(open)
+              if (!open && deleteError) library.dismissMutationError()
+            }}
+          >
             <AlertDialogTrigger asChild>
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => setConfirmingRevoke(false)}
-              >
+              <button className="danger-button" type="button">
                 Delete recipient
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent
               onEscapeKeyDown={(event) => {
-                if (library.mutation.status === 'pending') event.preventDefault()
+                if (deleting) event.preventDefault()
               }}
             >
               <AlertDialogHeader>
@@ -154,13 +171,15 @@ export function RecipientDetailPage() {
                   trees stay in your library.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {deleteError && (
+                <div className="notice error-notice" role="alert">
+                  <strong>Recipient could not be deleted.</strong>
+                  <span>{deleteError.message}</span>
+                </div>
+              )}
               <AlertDialogFooter>
                 <AlertDialogCancel asChild>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    disabled={library.mutation.status === 'pending'}
-                  >
+                  <button className="secondary-button" type="button" disabled={deleting}>
                     Keep recipient
                   </button>
                 </AlertDialogCancel>
@@ -168,15 +187,17 @@ export function RecipientDetailPage() {
                   <button
                     className="danger-button"
                     type="button"
-                    disabled={library.mutation.status === 'pending'}
+                    disabled={deleting}
                     onClick={(event) => {
                       event.preventDefault()
                       void remove()
                     }}
                   >
-                    {library.mutation.status === 'pending'
+                    {deleting
                       ? 'Deleting…'
-                      : `Delete ${recipient.displayName}`}
+                      : deleteError
+                        ? 'Try deleting again'
+                        : `Delete ${recipient.displayName}`}
                   </button>
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -210,6 +231,8 @@ export function RecipientDetailPage() {
       )}
 
       {library.mutation.status === 'failed' &&
+        library.mutation.action !== 'delete' &&
+        library.mutation.action !== 'revoke' &&
         library.mutation.error.kind !== 'unauthenticated' && (
           <div className="notice error-notice" role="alert">
             <strong>That change could not be saved.</strong>
@@ -247,33 +270,60 @@ export function RecipientDetailPage() {
           onDismiss={enrollment.dismiss}
         />
 
-        {recipient.hasActiveSession &&
-          (confirmingRevoke ? (
-            <div className="notice" role="alertdialog" aria-label="Confirm ending device access">
-              <strong>End this device's access?</strong>
-              <span>
-                {recipient.displayName} keeps their assigned tasks, but the device stops working
-                until you enroll it again.
-              </span>
-              <button className="primary-button" type="button" onClick={revoke}>
-                Revoke access
+        {recipient.hasActiveSession && (
+          <AlertDialog
+            open={confirmingRevoke}
+            onOpenChange={(open) => {
+              setConfirmingRevoke(open)
+              if (!open && revokeError) library.dismissMutationError()
+            }}
+          >
+            <AlertDialogTrigger asChild>
+              <button className="secondary-button" type="button">
+                Revoke device access
               </button>
-              <button type="button" onClick={() => setConfirmingRevoke(false)}>
-                Keep access
-              </button>
-            </div>
-          ) : (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => {
-                setConfirmingDelete(false)
-                setConfirmingRevoke(true)
+            </AlertDialogTrigger>
+            <AlertDialogContent
+              onEscapeKeyDown={(event) => {
+                if (revoking) event.preventDefault()
               }}
             >
-              Revoke device access
-            </button>
-          ))}
+              <AlertDialogHeader>
+                <AlertDialogTitle>End this device&apos;s access?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {recipient.displayName} keeps their assigned tasks, but the device stops working
+                  until you enroll it again.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              {revokeError && (
+                <div className="notice error-notice" role="alert">
+                  <strong>Device access could not be revoked.</strong>
+                  <span>{revokeError.message}</span>
+                </div>
+              )}
+              <AlertDialogFooter>
+                <AlertDialogCancel asChild>
+                  <button className="secondary-button" type="button" disabled={revoking}>
+                    Keep access
+                  </button>
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <button
+                    className="danger-button"
+                    type="button"
+                    disabled={revoking}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      void revoke()
+                    }}
+                  >
+                    {revoking ? 'Revoking…' : revokeError ? 'Try revoking access' : 'Revoke access'}
+                  </button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </section>
 
       <section className="library-section" aria-labelledby="assignments-heading">

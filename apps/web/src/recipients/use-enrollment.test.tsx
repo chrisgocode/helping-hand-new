@@ -1,5 +1,6 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROBLEM } from '../lib/problem'
 import { WorkspaceError } from '../lib/workspace-error'
 import {
   approveEnrollment,
@@ -137,6 +138,7 @@ describe('useEnrollment', () => {
     approve.mockRejectedValue(
       Object.assign(new WorkspaceError('conflict', false), {
         message: 'The device is not showing this code any more.',
+        problemType: PROBLEM.enrollmentConflict,
       }),
     )
     const { result } = await renderIssued()
@@ -148,6 +150,24 @@ describe('useEnrollment', () => {
     expect(result.current.phase.status).toBe('awaiting-confirmation')
     expect(result.current.notice).toMatchObject({ kind: 'stale-code' })
     expect(poll.mock.calls.length).toBeGreaterThan(before)
+  })
+
+  it('stops approval when the enrollment is in another conflicting state', async () => {
+    poll.mockResolvedValue(status('claimed', 'AB3D9K') as never)
+    approve.mockRejectedValue(
+      Object.assign(new WorkspaceError('conflict', false), {
+        problemType: PROBLEM.conflict,
+      }),
+    )
+    const { result } = await renderIssued()
+    await advance(3000)
+    const before = poll.mock.calls.length
+
+    await act(() => result.current.approve())
+
+    expect(result.current.phase.status).toBe('failed')
+    expect(result.current.notice).toBeNull()
+    expect(poll).toHaveBeenCalledTimes(before)
   })
 
   it('expires when approval finds the window closed', async () => {
@@ -211,6 +231,47 @@ describe('useEnrollment', () => {
     expect(poll).toHaveBeenCalledTimes(before)
   })
 
+  it('ignores an issue response after the panel unmounts', async () => {
+    let resolveIssue!: (value: typeof issued) => void
+    issue.mockImplementationOnce(() => new Promise((resolve) => (resolveIssue = resolve)))
+    const onSettled = vi.fn()
+    const view = renderHook(() => useEnrollment(recipient, { onSettled }))
+    let pending!: Promise<void>
+
+    act(() => {
+      pending = view.result.current.issue()
+    })
+    view.unmount()
+    await act(async () => {
+      resolveIssue(issued)
+      await pending
+    })
+    await advance(3000)
+
+    expect(poll).not.toHaveBeenCalled()
+    expect(onSettled).not.toHaveBeenCalled()
+  })
+
+  it('ignores an issue failure after a newer request succeeds', async () => {
+    let rejectOldIssue!: (cause: unknown) => void
+    issue
+      .mockImplementationOnce(() => new Promise((_, reject) => (rejectOldIssue = reject)) as never)
+      .mockResolvedValueOnce(issued)
+    const { result } = renderHook(() => useEnrollment(recipient))
+    let oldRequest!: Promise<void>
+
+    act(() => {
+      oldRequest = result.current.issue()
+    })
+    await act(() => result.current.issue())
+    await act(async () => {
+      rejectOldIssue(new WorkspaceError('unavailable', true))
+      await oldRequest
+    })
+
+    expect(result.current.phase).toMatchObject({ status: 'showing-code', payload: issued.payload })
+  })
+
   it('rejoins an enrollment that is already waiting for confirmation', async () => {
     poll.mockResolvedValue(status('claimed', 'AB3D9K') as never)
     const pending = { ...recipient, pendingEnrollmentId: enrollmentId }
@@ -223,6 +284,22 @@ describe('useEnrollment', () => {
       matchingCode: 'AB3D9K',
     })
     expect(issue).not.toHaveBeenCalled()
+  })
+
+  it('keeps resuming after a temporary failure without guessing the server expiry', async () => {
+    poll
+      .mockRejectedValueOnce(new WorkspaceError('unavailable', true))
+      .mockResolvedValueOnce(status('issued') as never)
+    const pending = { ...recipient, pendingEnrollmentId: enrollmentId }
+    const { result } = renderHook(() => useEnrollment(pending))
+
+    await act(async () => {})
+    expect(result.current.notice).toMatchObject({ kind: 'poll-unavailable' })
+
+    await advance(6000)
+
+    expect(poll).toHaveBeenCalledTimes(2)
+    expect(result.current.phase.status).toBe('code-unavailable')
   })
 
   it('keeps the code on screen when the recipient refreshes into a pending enrollment', async () => {
@@ -269,6 +346,30 @@ describe('useEnrollment', () => {
     expect(poll).toHaveBeenCalledTimes(settled)
   })
 
+  it('ignores an approval response after the panel unmounts', async () => {
+    poll.mockResolvedValue(status('claimed', 'AB3D9K') as never)
+    let resolveApproval!: (value: ReturnType<typeof status>) => void
+    approve.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveApproval = resolve)) as never,
+    )
+    const onSettled = vi.fn()
+    const view = await renderIssued(onSettled)
+    await advance(3000)
+    onSettled.mockClear()
+    let pending!: Promise<void>
+
+    act(() => {
+      pending = view.result.current.approve()
+    })
+    view.unmount()
+    await act(async () => {
+      resolveApproval(status('approved', 'AB3D9K'))
+      await pending
+    })
+
+    expect(onSettled).not.toHaveBeenCalled()
+  })
+
   it('cancels an enrollment in flight', async () => {
     cancel.mockResolvedValue(undefined)
     const { result } = await renderIssued()
@@ -281,5 +382,45 @@ describe('useEnrollment', () => {
     const settled = poll.mock.calls.length
     await advance(30_000)
     expect(poll).toHaveBeenCalledTimes(settled)
+  })
+
+  it('ignores a cancellation response after the panel unmounts', async () => {
+    let resolveCancellation!: () => void
+    cancel.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (resolveCancellation = resolve)),
+    )
+    const onSettled = vi.fn()
+    const view = await renderIssued(onSettled)
+    let pending!: Promise<void>
+
+    act(() => {
+      pending = view.result.current.cancel()
+    })
+    view.unmount()
+    await act(async () => {
+      resolveCancellation()
+      await pending
+    })
+
+    expect(onSettled).not.toHaveBeenCalled()
+  })
+
+  it('keeps polling a new enrollment while an invalidated poll finishes', async () => {
+    let resolveOldPoll!: (value: ReturnType<typeof status>) => void
+    poll.mockImplementationOnce(() => new Promise((resolve) => (resolveOldPoll = resolve)) as never)
+    cancel.mockResolvedValue(undefined)
+    const { result } = await renderIssued()
+
+    await advance(3000)
+    await act(() => result.current.cancel())
+    await act(() => result.current.issue())
+
+    await advance(3000)
+    expect(poll).toHaveBeenCalledTimes(1)
+
+    await act(async () => resolveOldPoll(status('issued')))
+    await advance(3000)
+
+    expect(poll).toHaveBeenCalledTimes(2)
   })
 })
