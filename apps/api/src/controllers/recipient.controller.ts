@@ -5,6 +5,7 @@ import { serviceErrorHandler } from '../lib/service-error'
 import type {
   assignRecipientTaskRoute,
   createRecipientRoute,
+  deleteRecipientRoute,
   getAssignedTaskTreesRoute,
   getRecipientIdentityRoute,
   getRecipientsRoute,
@@ -41,6 +42,13 @@ export const updateRecipient: RouteHandler<typeof updateRecipientRoute, ApiEnv> 
   // Disabling ends every form of access, so it is audited like an explicit revocation.
   if (input.isActive === false) audit(c, 'recipient_disabled', { recipientId })
   return c.json(recipient, 200)
+}
+
+export const deleteRecipient: RouteHandler<typeof deleteRecipientRoute, ApiEnv> = async (c) => {
+  const { recipientId } = c.req.valid('param')
+  await recipientService(c).deleteRecipient(c.get('authenticatedUserId'), recipientId)
+  audit(c, 'recipient_deleted', { recipientId })
+  return c.body(null, 204)
 }
 
 export const getRecipientTasks: RouteHandler<typeof getRecipientTasksRoute, ApiEnv> = async (c) =>

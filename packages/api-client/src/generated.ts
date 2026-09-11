@@ -200,7 +200,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Permanently delete a recipient
+         * @description Deletes the recipient identity, device access, assignments, and enrollments. Assigned task trees are preserved.
+         */
+        delete: operations["deleteRecipient"];
         options?: never;
         head?: never;
         /**
@@ -2493,6 +2497,106 @@ export interface operations {
             };
             /** @description The recipient limit was reached */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request rate limit was exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The request could not be completed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+        };
+    };
+    deleteRecipient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recipient was deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description A recipient device cannot perform this operation */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        type: string;
+                        title: string;
+                        status: number;
+                        detail: string;
+                        instance: string;
+                        retryable: boolean;
+                    };
+                };
+            };
+            /** @description The recipient does not exist */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

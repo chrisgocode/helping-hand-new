@@ -375,6 +375,71 @@ describe('recipient HTTP routes', () => {
     ).toBe(401)
   })
 
+  test('permanently deletes a recipient without deleting their assigned task trees', async () => {
+    const cookie = await signInCaretaker(env)
+    const other = await signInCaretaker(env, 'other@example.com')
+    const root = await saveTaskTree(env, cookie, rootId('1'), 'Morning routine')
+    const alex = await createRecipient(env, cookie, 'Alex')
+    await request(env, `/api/recipients/${alex.id}/tasks/${root}`, 'PUT', { headers: { cookie } })
+    const device = await enrollDevice(env, cookie, alex.id)
+    const recipientUser = await database
+      .prepare('SELECT userId FROM recipient WHERE id = ?')
+      .bind(alex.id)
+      .first<{ userId: string }>()
+
+    expect(
+      (
+        await request(env, `/api/recipients/${alex.id}`, 'DELETE', {
+          headers: { cookie: other },
+        })
+      ).status,
+    ).toBe(404)
+    expect(
+      (
+        await request(env, `/api/recipients/${alex.id}`, 'DELETE', {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(204)
+
+    expect(
+      await (await request(env, '/api/recipients', 'GET', { headers: { cookie } })).json(),
+    ).toEqual([])
+    expect(
+      (await request(env, '/api/recipient/me', 'GET', { headers: bearer(device.token) })).status,
+    ).toBe(401)
+    expect(
+      (
+        await request(env, `/api/enrollments/${device.enrollmentId}`, 'GET', {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(404)
+    expect(
+      (
+        await request(env, `/api/recipients/${alex.id}/tasks`, 'GET', {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(404)
+    expect(
+      await (await request(env, '/api/tasks', 'GET', { headers: { cookie } })).json(),
+    ).toMatchObject([{ id: root }])
+    expect(
+      await database
+        .prepare('SELECT id FROM "user" WHERE id = ?')
+        .bind(recipientUser?.userId)
+        .first(),
+    ).toBeNull()
+    expect(
+      (
+        await request(env, `/api/recipients/${alex.id}`, 'DELETE', {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(404)
+  })
+
   test('keeps caretaker sign-in, tasks, categories, and guest AI behavior working', async () => {
     const cookie = await signInCaretaker(env)
     expect((await request(env, '/api/tasks', 'GET', { headers: { cookie } })).status).toBe(200)
