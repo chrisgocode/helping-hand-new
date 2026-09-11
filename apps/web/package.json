@@ -15,7 +15,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@helping-hand/api-client": "workspace:*",
     "@helping-hand/schemas": "workspace:*",
+    "@radix-ui/react-alert-dialog": "^1.1.23",
     "better-auth": "^1.7.2",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.3.1"

@@ -1,0 +1,117 @@
+.recipient-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.recipient-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 260px;
+}
+
+.recipient-form-field span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.recipient-form-field input {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.recipient-limit-note {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.recipient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.recipient-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.recipient-card-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.recipient-card-copy h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.recipient-status-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--paper);
+}
+
+.recipient-status-chip.active {
+  color: var(--blue-dark);
+  border-color: color-mix(in srgb, var(--blue) 40%, var(--line));
+  background: color-mix(in srgb, var(--blue) 12%, var(--surface));
+}
+
+.recipient-status-chip.pending {
+  color: var(--coral);
+  border-color: color-mix(in srgb, var(--coral) 40%, var(--line));
+  background: color-mix(in srgb, var(--coral) 12%, var(--surface));
+}
+
+.recipient-skeleton-copy {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+
+.recipient-skeleton-name {
+  width: 40%;
+  height: 18px;
+}
+
+.recipient-skeleton-meta {
+  width: 25%;
+  height: 14px;
+}
+
+.recipient-skeleton-action {
+  width: 96px;
+  height: 38px;
+}
+
+@media (max-width: 640px) {
+  .recipient-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

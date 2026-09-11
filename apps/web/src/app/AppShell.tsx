@@ -40,6 +40,12 @@ export function AppShell() {
           <NavLink className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} to="/tasks">
             Tasks
           </NavLink>
+          <NavLink
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            to="/recipients"
+          >
+            Recipients
+          </NavLink>
           <button
             className="sign-out-button"
             type="button"
