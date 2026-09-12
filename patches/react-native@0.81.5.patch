@@ -1,0 +1,37 @@
+diff --git a/scripts/cocoapods/spm.rb b/scripts/cocoapods/spm.rb
+index 0b132076169b5d1c9757523439fad46edf7f59e0..15d718941560a283e294b5f26c1f02509adeee52 100644
+--- a/scripts/cocoapods/spm.rb
++++ b/scripts/cocoapods/spm.rb
+@@ -53,6 +53,14 @@ class SPMManager
+ 
+   private
+ 
++  def new_object(project, klass)
++    uuid = project.generate_uuid
++    uuid = project.generate_uuid while project.objects_by_uuid.key?(uuid)
++    object = klass.new(project, uuid)
++    object.initialize_defaults
++    object
++  end
++
+   def log(msg)
+     ::Pod::UI.puts "[SPM] #{msg}"
+   end
+@@ -70,7 +78,7 @@ class SPMManager
+     ref_class = Xcodeproj::Project::Object::XCSwiftPackageProductDependency
+     pkg = project.root_object.package_references.find { |p| p.class == pkg_class && p.repositoryURL == url }
+     if !pkg
+-      pkg = project.new(pkg_class)
++      pkg = new_object(project, pkg_class)
+       pkg.repositoryURL = url
+       pkg.requirement = requirement
+       log(" Adding package to workspace: #{pkg.inspect}")
+@@ -83,7 +91,7 @@ class SPMManager
+       next if ref
+ 
+       log(" Adding product dependency #{product_name} to #{target.name}")
+-      ref = project.new(ref_class)
++      ref = new_object(project, ref_class)
+       ref.package = pkg
+       ref.product_name = product_name
+       target.package_product_dependencies << ref

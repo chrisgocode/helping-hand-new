@@ -1,0 +1,32 @@
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "bun": "1.4.0",
+      "env": {
+        "EAS_USE_CACHE": "1"
+      }
+    },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "bun": "1.4.0"
+    },
+    "production": {
+      "autoIncrement": true,
+      "bun": "1.4.0"
+    }
+  },
+  "submit": {
+    "production": {}
+  },
+  "cli": {
+    "appVersionSource": "remote"
+  }
+}
