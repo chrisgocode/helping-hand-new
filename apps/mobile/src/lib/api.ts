@@ -1,7 +1,7 @@
 import { createApiClient } from '@helping-hand/api-client'
+import { config } from './config'
 
-const defaultApiOrigin = 'https://api.helpinghand.chrisgo.dev'
-export const apiOrigin = new URL(process.env.EXPO_PUBLIC_API_ORIGIN ?? defaultApiOrigin).origin
+export const apiOrigin = config.api.origin
 
 export const api = createApiClient({
   baseUrl: apiOrigin,

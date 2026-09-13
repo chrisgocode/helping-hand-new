@@ -4,6 +4,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "bun": "1.4.0",
+      "environment": "development",
       "env": {
         "EAS_USE_CACHE": "1"
       }
@@ -16,11 +17,13 @@
     },
     "preview": {
       "distribution": "internal",
-      "bun": "1.4.0"
+      "bun": "1.4.0",
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "bun": "1.4.0"
+      "bun": "1.4.0",
+      "environment": "production"
     }
   },
   "submit": {

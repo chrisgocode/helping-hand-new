@@ -11,5 +11,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // Metro inlines these from .env; under vitest they have to come from somewhere.
+    env: {
+      EXPO_PUBLIC_API_ORIGIN: 'http://localhost:8787',
+      EXPO_PUBLIC_APP_ENV: 'development',
+    },
   },
 })
