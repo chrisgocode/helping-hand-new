@@ -298,7 +298,6 @@ describe('useEnrollment', () => {
 
       const firstLaunch = await render(adapter, createApi())
 
-      // Marking here would trust the credential that outlived the wipe.
       expect(adapter.markInstallationHandled).not.toHaveBeenCalled()
       expect(firstLaunch.result.current.state).toMatchObject({ status: 'terminal' })
       cleanup()

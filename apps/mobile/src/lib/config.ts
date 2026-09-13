@@ -28,14 +28,12 @@ function readEnvironment(value: string | undefined) {
 }
 
 /**
- * The environment is its own variable because `NODE_ENV` cannot name one: a
- * bundle is built with `expo export`, which forces `production`, so a preview
- * build and a store build would be indistinguishable. The names match the EAS
- * environments and the API's `APP_ENV`.
+ * The environment needs its own variable because `expo export` forces
+ * `NODE_ENV` to `production`, which would make a preview build and a store
+ * build indistinguishable. The names match the EAS environments and `APP_ENV`.
  *
- * Both reads must stay dot-notation literals on `process.env`. Metro substitutes
- * the value at bundle time, and a destructured or computed key is never
- * replaced, so it would silently be `undefined` on a device.
+ * Both reads must stay dot-notation literals: Metro substitutes the value at
+ * bundle time, and a destructured or computed key is left as `undefined`.
  */
 export const config = Object.freeze({
   environment: readEnvironment(process.env.EXPO_PUBLIC_APP_ENV),

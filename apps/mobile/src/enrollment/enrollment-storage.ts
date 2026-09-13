@@ -13,8 +13,8 @@ export type PendingEnrollment = PersistedEnrollment
 /**
  * `isFreshInstallation` reports whether the store may have outlived the
  * installation that wrote it: a restored keychain can hand a fresh install
- * someone else's credential. It must not record the answer — marking is a
- * separate operation so it can wait until the stale credential is really gone.
+ * someone else's credential. It must not record the answer; marking is separate
+ * so it can wait until the stale credential is really gone.
  */
 export type SecureKeyValueAdapter = {
   getItem(key: string): Promise<string | null>
@@ -79,8 +79,7 @@ export function createEnrollmentStorage(adapter: SecureKeyValueAdapter): Enrollm
   return {
     async restore() {
       if (await adapter.isFreshInstallation()) {
-        // Marking before the wipe lands would trust whatever survived it, so a
-        // failed delete propagates and the next launch tries the wipe again.
+        // Marking before the wipe lands would trust whatever survived it.
         await Promise.all([adapter.deleteItem(SESSION_KEY), dropPending()])
         await adapter.markInstallationHandled()
         return { status: 'none' }
@@ -122,8 +121,8 @@ export function createEnrollmentStorage(adapter: SecureKeyValueAdapter): Enrollm
 
     /**
      * Every caller is discarding a credential the server has already rejected,
-     * so a key that survives the delete is unusable and `restore` clears it on
-     * the next launch. Rejecting here would strand a caller mid-transition.
+     * so a key that survives is unusable and `restore` clears it next launch.
+     * Rejecting here would strand a caller mid-transition.
      */
     async clearEnrollment() {
       await Promise.allSettled([adapter.deleteItem(SESSION_KEY), dropPending()])

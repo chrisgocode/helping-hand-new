@@ -7,13 +7,13 @@ import { defineConfig } from 'vitest/config'
  */
 export default defineConfig({
   resolve: {
-    // The .href keeps this off the DOM URL type, which does not match node's.
+    // .href because the DOM URL type does not satisfy node's.
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url).href) },
   },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    // Metro inlines these from .env; under vitest they have to come from somewhere.
+    // Metro inlines these from .env; vitest has no such step.
     env: {
       EXPO_PUBLIC_API_ORIGIN: 'http://localhost:8787',
       EXPO_PUBLIC_APP_ENV: 'development',
