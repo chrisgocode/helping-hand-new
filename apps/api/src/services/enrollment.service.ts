@@ -108,14 +108,45 @@ export function expireStaleStatement(database: D1Database, enrollmentId?: string
 }
 
 /**
+ * Only the plaintext redelivery copy goes; the active session stays valid.
+ * Without an enrollment it sweeps a bounded batch.
+ */
+export function clearDeliveredTokenStatement(database: D1Database, enrollmentId?: string) {
+  const filter = enrollmentId
+    ? { clause: 'id = ?', value: enrollmentId }
+    : {
+        // The limit has to bound eligible rows, or a backlog never drains.
+        clause: `id IN (
+          SELECT id FROM enrollment
+            WHERE state = 'delivered' AND approvedSessionToken IS NOT NULL
+              AND deliveryExpiresAt <= ${SQL_NOW}
+            LIMIT ?
+        )`,
+        value: null,
+      }
+
+  const statement = database.prepare(
+    `UPDATE enrollment
+       SET approvedSessionToken = NULL, updatedAt = ${SQL_NOW}
+       WHERE ${filter.clause}
+         AND state = 'delivered' AND approvedSessionToken IS NOT NULL
+         AND deliveryExpiresAt <= ${SQL_NOW}`,
+  )
+  return filter.value === null ? statement.bind(CLEANUP_LIMIT) : statement.bind(filter.value)
+}
+
+/**
  * The periodic sweep behind the scheduled handler. It settles stale
  * enrollments, deletes the sessions prepared for enrollments that were never
  * collected, and drops settled records once their retention window passes.
  * Every statement is bounded, so a large backlog drains over several runs.
  */
 export async function cleanupEnrollments(database: D1Database) {
-  const [expired, sessions, , records] = await database.batch([
+  const [expired, tokens, sessions, , records] = await database.batch([
     expireStaleStatement(database),
+
+    // The backstop for rows no request has touched since their window closed.
+    clearDeliveredTokenStatement(database),
 
     // An approved enrollment that expired or was cancelled leaves behind a
     // session no device ever collected. A delivered enrollment is a different
@@ -155,6 +186,7 @@ export async function cleanupEnrollments(database: D1Database) {
   return {
     enrollmentsExpired: expired.meta.changes ?? 0,
     sessionsDeleted: sessions.meta.changes ?? 0,
+    tokensCleared: tokens.meta.changes ?? 0,
     enrollmentsDeleted: records.meta.changes ?? 0,
   }
 }
@@ -173,8 +205,15 @@ export class EnrollmentService {
     this.#recipientAuth = recipientAuth
   }
 
+  /**
+   * Settles one enrollment before it is read, so a closed window is enforced by
+   * the stored state rather than by the next scheduled sweep.
+   */
   async #expireStale(enrollmentId: string) {
-    await expireStaleStatement(this.#database, enrollmentId).run()
+    await this.#database.batch([
+      expireStaleStatement(this.#database, enrollmentId),
+      clearDeliveredTokenStatement(this.#database, enrollmentId),
+    ])
   }
 
   async #enrollment(enrollmentId: string): Promise<EnrollmentRow | null> {

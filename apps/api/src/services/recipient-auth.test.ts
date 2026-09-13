@@ -51,6 +51,7 @@ describe('recipient authentication integration', () => {
     const authenticated = await bearerSession(session.token)
     expect(authenticated?.user.id).toBe(userId)
     expect(authenticated?.session.id).toBe(session.id)
+    expect(new Date(session.expiresAt).getUTCFullYear()).toBe(9999)
 
     // The same token can be presented again after a lost response.
     expect((await bearerSession(session.token))?.user.id).toBe(userId)
