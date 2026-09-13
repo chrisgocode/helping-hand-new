@@ -27,12 +27,11 @@ const nativeSecureStorage: SecureKeyValueAdapter = {
   getItem: (key) => SecureStore.getItemAsync(key),
   setItem: (key, value) => SecureStore.setItemAsync(key, value),
   deleteItem: (key) => SecureStore.deleteItemAsync(key),
-  async installationState() {
+  isFreshInstallation: async () => !new File(Paths.document, INSTALLATION_MARKER).exists,
+  async markInstallationHandled() {
     const marker = new File(Paths.document, INSTALLATION_MARKER)
-    if (marker.exists) return 'existing'
     marker.create({ overwrite: true })
     marker.write('1')
-    return 'fresh'
   },
 }
 
@@ -41,7 +40,8 @@ const webPreviewStorage: SecureKeyValueAdapter = {
   getItem: async (key) => globalThis.sessionStorage.getItem(key),
   setItem: async (key, value) => globalThis.sessionStorage.setItem(key, value),
   deleteItem: async (key) => globalThis.sessionStorage.removeItem(key),
-  installationState: async () => 'existing',
+  isFreshInstallation: async () => false,
+  markInstallationHandled: async () => {},
 }
 
 export const enrollmentStorage: EnrollmentStorage = createEnrollmentStorage(

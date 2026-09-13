@@ -52,16 +52,18 @@ type MemoryAdapter = SecureKeyValueAdapter & {
   rejectWrites: Set<string>
   rejectDeletes: Set<string>
   dropWrites: Set<string>
+  markInstallationHandled: ReturnType<typeof vi.fn>
 }
 
 function createMemoryAdapter(
   initial: Record<string, string> = {},
-  installationState: 'fresh' | 'existing' = 'existing',
+  installation: 'fresh' | 'existing' = 'existing',
 ): MemoryAdapter {
   const entries = new Map(Object.entries(initial))
   const rejectWrites = new Set<string>()
   const rejectDeletes = new Set<string>()
   const dropWrites = new Set<string>()
+  let marked = installation === 'existing'
 
   return {
     entries,
@@ -78,7 +80,10 @@ function createMemoryAdapter(
       if (rejectDeletes.has(key)) throw new Error(`storage kept ${key}`)
       entries.delete(key)
     },
-    installationState: async () => installationState,
+    isFreshInstallation: async () => !marked,
+    markInstallationHandled: vi.fn(async () => {
+      marked = true
+    }),
   }
 }
 
@@ -281,6 +286,30 @@ describe('useEnrollment', () => {
       expect(view.result.current.state).toMatchObject({ status: 'welcome', pending: null })
       expect(adapter.entries.size).toBe(0)
       expect(api.getRecipientIdentity).not.toHaveBeenCalled()
+      expect(adapter.markInstallationHandled).toHaveBeenCalledTimes(1)
+    })
+
+    test('a wipe that fails leaves the installation unmarked, and retries next launch', async () => {
+      const adapter = createMemoryAdapter(
+        { [SESSION_KEY]: JSON.stringify(session), [PENDING_KEY]: claimedRecord() },
+        'fresh',
+      )
+      adapter.rejectDeletes.add(SESSION_KEY)
+
+      const firstLaunch = await render(adapter, createApi())
+
+      // Marking here would trust the credential that outlived the wipe.
+      expect(adapter.markInstallationHandled).not.toHaveBeenCalled()
+      expect(firstLaunch.result.current.state).toMatchObject({ status: 'terminal' })
+      cleanup()
+
+      adapter.rejectDeletes.clear()
+      const api = createApi()
+      const secondLaunch = await render(adapter, api)
+
+      expect(secondLaunch.result.current.state).toMatchObject({ status: 'welcome', pending: null })
+      expect(adapter.entries.size).toBe(0)
+      expect(api.getRecipientIdentity).not.toHaveBeenCalled()
     })
   })
 
@@ -348,6 +377,20 @@ describe('useEnrollment', () => {
       expect(adapter.entries.has(PENDING_KEY)).toBe(false)
     })
 
+    test('a terminal response ends the attempt even when the record cannot be deleted', async () => {
+      const adapter = createMemoryAdapter({ [PENDING_KEY]: claimedRecord() })
+      adapter.rejectDeletes.add(PENDING_KEY)
+      adapter.rejectDeletes.add(SESSION_KEY)
+      const api = createApi()
+      api.collectEnrollmentSession.mockRejectedValue(new EnrollmentApiError(410, 'gone'))
+
+      const view = await render(adapter, api)
+      await advance(3000)
+
+      // Polling has stopped, so a screen left in `pending` would be a dead end.
+      expect(view.result.current.state).toMatchObject({ status: 'terminal', message: 'gone' })
+    })
+
     test('a server fault never ends the attempt', async () => {
       const adapter = createMemoryAdapter({ [PENDING_KEY]: claimedRecord() })
       const api = createApi()
@@ -394,7 +437,9 @@ describe('useEnrollment', () => {
       expect(view.result.current.state).toMatchObject({ status: 'validation-failed' })
       expect(adapter.entries.has(SESSION_KEY)).toBe(true)
 
-      await act(() => void view.result.current.retryValidation())
+      await act(async () => {
+        view.result.current.retryValidation()
+      })
       expect(view.result.current.state).toMatchObject({ status: 'authenticated' })
     })
 
@@ -408,6 +453,19 @@ describe('useEnrollment', () => {
 
       expect(view.result.current.state).toMatchObject({ status: 'welcome' })
       expect(adapter.entries.size).toBe(0)
+    })
+
+    test('an already invalid token is discarded even when the delete fails', async () => {
+      const adapter = createMemoryAdapter({ [SESSION_KEY]: JSON.stringify(session) })
+      adapter.rejectDeletes.add(SESSION_KEY)
+      const api = createApi()
+      api.signOutRecipient.mockRejectedValue(new EnrollmentApiError(401, 'gone'))
+
+      const view = await render(adapter, api)
+      await act(() => view.result.current.removeEnrollment())
+
+      // The token is dead server-side, so the screen must not stay in `removing`.
+      expect(view.result.current.state).toMatchObject({ status: 'welcome' })
     })
 
     test('a failed sign-out keeps the device enrolled', async () => {

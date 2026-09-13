@@ -72,7 +72,12 @@ export default function HomeScreen() {
                 : 'Scan the enrollment code shown by your caretaker to get started.'}
             </Text>
             {state.pending ? (
-              <Button onPress={enrollment.resumeSetup}>Resume enrollment</Button>
+              <>
+                <Button onPress={enrollment.resumeSetup}>Resume enrollment</Button>
+                <Button secondary onPress={enrollment.startScanning}>
+                  Scan a different code
+                </Button>
+              </>
             ) : (
               <Button onPress={enrollment.startScanning}>Scan enrollment code</Button>
             )}

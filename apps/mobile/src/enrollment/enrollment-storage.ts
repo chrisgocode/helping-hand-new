@@ -11,15 +11,17 @@ const PENDING_KEY = 'pending-enrollment'
 export type PendingEnrollment = PersistedEnrollment
 
 /**
- * `installationState` reports whether the store may have outlived the
+ * `isFreshInstallation` reports whether the store may have outlived the
  * installation that wrote it: a restored keychain can hand a fresh install
- * someone else's credential.
+ * someone else's credential. It must not record the answer — marking is a
+ * separate operation so it can wait until the stale credential is really gone.
  */
 export type SecureKeyValueAdapter = {
   getItem(key: string): Promise<string | null>
   setItem(key: string, value: string): Promise<void>
   deleteItem(key: string): Promise<void>
-  installationState(): Promise<'fresh' | 'existing'>
+  isFreshInstallation(): Promise<boolean>
+  markInstallationHandled(): Promise<void>
 }
 
 /** What a launching app has on disk, after any partial write is reconciled. */
@@ -76,8 +78,11 @@ export function createEnrollmentStorage(adapter: SecureKeyValueAdapter): Enrollm
 
   return {
     async restore() {
-      if ((await adapter.installationState()) === 'fresh') {
+      if (await adapter.isFreshInstallation()) {
+        // Marking before the wipe lands would trust whatever survived it, so a
+        // failed delete propagates and the next launch tries the wipe again.
         await Promise.all([adapter.deleteItem(SESSION_KEY), dropPending()])
+        await adapter.markInstallationHandled()
         return { status: 'none' }
       }
 
@@ -115,8 +120,13 @@ export function createEnrollmentStorage(adapter: SecureKeyValueAdapter): Enrollm
       await dropPending().catch(() => {})
     },
 
+    /**
+     * Every caller is discarding a credential the server has already rejected,
+     * so a key that survives the delete is unusable and `restore` clears it on
+     * the next launch. Rejecting here would strand a caller mid-transition.
+     */
     async clearEnrollment() {
-      await Promise.all([adapter.deleteItem(SESSION_KEY), dropPending()])
+      await Promise.allSettled([adapter.deleteItem(SESSION_KEY), dropPending()])
     },
   }
 }
