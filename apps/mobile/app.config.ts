@@ -44,7 +44,7 @@ const config: ExpoConfig = {
         image: './assets/images/splash-icon.png',
         imageWidth: 200,
         resizeMode: 'contain',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f5f0e6',
       },
     ],
     'expo-secure-store',
