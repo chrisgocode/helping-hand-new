@@ -191,6 +191,16 @@ describe('recipient HTTP routes', () => {
     expect(Date.parse(me.sessionExpiresAt)).toBeGreaterThan(Date.now() + 60_000)
   })
 
+  test('lets a recipient remove this device through sign-out', async () => {
+    const cookie = await signInCaretaker(env)
+    const alex = await createRecipient(env, cookie, 'Alex')
+    const device = await enrollDevice(env, cookie, alex.id)
+    const headers = bearer(device.token)
+
+    expect((await request(env, '/api/auth/sign-out', 'POST', { headers })).status).toBe(200)
+    expect((await request(env, '/api/recipient/me', 'GET', { headers })).status).toBe(401)
+  })
+
   test('rejects assignment of a non-root task and of another caretaker task', async () => {
     const cookie = await signInCaretaker(env)
     const other = await signInCaretaker(env, 'other@example.com')

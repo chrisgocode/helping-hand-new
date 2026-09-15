@@ -76,6 +76,70 @@ describe('EnrollmentService', () => {
     ).toBeNull()
   })
 
+  test('cleanup clears a delivered token without ending the active session', async () => {
+    const { issued, matchingCode, claimantSecret } = await claimed()
+    await enrollments.approveEnrollment('caretaker-1', issued.id, { matchingCode })
+    const session = await enrollments.collectSession(issued.id, { claimantSecret })
+    if ('state' in session) throw new Error('Expected an approved session')
+    const active = await database
+      .prepare('SELECT activeSessionId FROM recipient WHERE id = ?')
+      .bind(recipientId)
+      .first<{ activeSessionId: string }>()
+    await expire(issued.id, 'deliveryExpiresAt')
+
+    await cleanupEnrollments(database)
+
+    expect(
+      await database
+        .prepare('SELECT state, approvedSessionToken FROM enrollment WHERE id = ?')
+        .bind(issued.id)
+        .first(),
+    ).toMatchObject({ state: 'delivered', approvedSessionToken: null })
+    expect(
+      await database
+        .prepare('SELECT id FROM session WHERE id = ?')
+        .bind(active?.activeSessionId ?? '')
+        .first(),
+    ).not.toBeNull()
+  })
+
+  test('cleanup reports the delivered tokens it cleared', async () => {
+    const { issued, matchingCode, claimantSecret } = await claimed()
+    await enrollments.approveEnrollment('caretaker-1', issued.id, { matchingCode })
+    await enrollments.collectSession(issued.id, { claimantSecret })
+    await expire(issued.id, 'deliveryExpiresAt')
+
+    expect((await cleanupEnrollments(database)).tokensCleared).toBe(1)
+  })
+
+  test('a collection past the delivery window drops the stored token at once', async () => {
+    const { issued, matchingCode, claimantSecret } = await claimed()
+    await enrollments.approveEnrollment('caretaker-1', issued.id, { matchingCode })
+    await enrollments.collectSession(issued.id, { claimantSecret })
+    await expire(issued.id, 'deliveryExpiresAt')
+
+    await expect(enrollments.collectSession(issued.id, { claimantSecret })).rejects.toMatchObject({
+      code: 'expired',
+    })
+    // The plaintext copy cannot wait for the scheduled sweep.
+    expect(
+      await database
+        .prepare('SELECT state, approvedSessionToken FROM enrollment WHERE id = ?')
+        .bind(issued.id)
+        .first(),
+    ).toMatchObject({ state: 'delivered', approvedSessionToken: null })
+  })
+
+  test('redelivery inside the delivery window keeps the stored token', async () => {
+    const { issued, matchingCode, claimantSecret } = await claimed()
+    await enrollments.approveEnrollment('caretaker-1', issued.id, { matchingCode })
+    const first = await enrollments.collectSession(issued.id, { claimantSecret })
+    const second = await enrollments.collectSession(issued.id, { claimantSecret })
+
+    if ('state' in first || 'state' in second) throw new Error('Expected an approved session')
+    expect(second.token).toBe(first.token)
+  })
+
   test('cleanup deletes settled enrollments only once they are past retention', async () => {
     const issued = await enrollments.issueEnrollment('caretaker-1', recipientId)
     await enrollments.cancelEnrollment('caretaker-1', issued.id)

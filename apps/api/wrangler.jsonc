@@ -19,8 +19,9 @@
   "secrets": {
     "required": ["BETTER_AUTH_SECRET", "OPENROUTER_API_KEY"]
   },
-  // Hourly bounded cleanup of expired enrollments and uncollected sessions.
-  "triggers": { "crons": ["0 * * * *"] },
+  // Bounded cleanup of expired enrollments and uncollected sessions. The
+  // interval must stay within the five-minute delivery window.
+  "triggers": { "crons": ["*/5 * * * *"] },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

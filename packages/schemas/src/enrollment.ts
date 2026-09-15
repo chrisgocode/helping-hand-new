@@ -78,6 +78,19 @@ export const pendingEnrollmentSessionSchema = z.strictObject({
   expiresAt: z.iso.datetime(),
 })
 
+/**
+ * What a device keeps about an enrollment attempt in progress, written before
+ * the claim is sent so a restarted app can recover it. `matchingCode` and
+ * `claimExpiresAt` stay null until the claim succeeds.
+ */
+export const persistedEnrollmentSchema = z.strictObject({
+  payload: enrollmentPayloadSchema,
+  claimantSecret: enrollmentSecretSchema,
+  matchingCode: matchingCodeSchema.nullable(),
+  pollIntervalSeconds: z.number().int().positive(),
+  claimExpiresAt: z.iso.datetime().nullable(),
+})
+
 export const recipientSessionSchema = z.strictObject({
   token: z.string().min(1),
   tokenType: z.literal('Bearer'),
@@ -97,4 +110,5 @@ export type EnrollmentClaim = z.infer<typeof enrollmentClaimSchema>
 export type ApproveEnrollmentInput = z.infer<typeof approveEnrollmentInputSchema>
 export type CollectEnrollmentInput = z.infer<typeof collectEnrollmentInputSchema>
 export type PendingEnrollmentSession = z.infer<typeof pendingEnrollmentSessionSchema>
+export type PersistedEnrollment = z.infer<typeof persistedEnrollmentSchema>
 export type RecipientSession = z.infer<typeof recipientSessionSchema>

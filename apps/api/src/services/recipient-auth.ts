@@ -6,6 +6,7 @@ import { type AuthBindings, createAuth } from '../auth'
  * returned by the API.
  */
 const RECIPIENT_EMAIL_DOMAIN = 'recipient.invalid'
+const RECIPIENT_SESSION_EXPIRES_AT = new Date('9999-12-31T23:59:59.999Z')
 
 /**
  * A Better Auth session record. Distinct from the schema-level
@@ -64,7 +65,12 @@ export function createRecipientAuth(env: AuthBindings): RecipientAuth {
 
     async createSession(userId) {
       const { internalAdapter } = await authContext()
-      const session = await internalAdapter.createSession(userId)
+      const session = await internalAdapter.createSession(
+        userId,
+        false,
+        { expiresAt: RECIPIENT_SESSION_EXPIRES_AT },
+        true,
+      )
       if (!session) throw new Error('Recipient session could not be created')
       return {
         id: session.id,
