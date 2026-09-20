@@ -1,8 +1,15 @@
 import type { AudioRouteDescription } from '../../modules/audio-route'
 import { recognizeBrowseIntent } from '../session/browse-intent'
+import type { BrowseIntent } from '../session/browse-navigation'
 import { recognizeIntent } from '../session/session-intent'
+import { matchByName } from '../session/spoken-match'
 import { isCapturingThroughGlasses } from '../voice/audio-route'
-import { CAPTURE_SCRIPT, type CaptureEnvironmentId, type CapturePrompt } from './capture-script'
+import {
+  CAPTURE_SCRIPT,
+  type CaptureEnvironmentId,
+  type CapturePrompt,
+  SAMPLE_NAMES,
+} from './capture-script'
 
 /** One prompt, as it was actually spoken and heard. */
 export type CaptureTake = {
@@ -136,12 +143,38 @@ export function scoreTake(take: CaptureTake): TakeOutcome {
 
   const traversal = recognizeIntent(take.transcript)
   const browsing = traversal ? null : recognizeBrowseIntent(take.transcript)
-  const resolved = traversal ?? (browsing ? 'browse' : null)
 
-  if (take.expect === null) return resolved === null ? 'correct' : 'falseAccept'
-  if (resolved === null) return 'missed'
+  if (take.expect === null) {
+    return traversal === null && browsing === null ? 'correct' : 'falseAccept'
+  }
 
-  return resolved === take.expect ? 'correct' : 'wrong'
+  if (typeof take.expect === 'string') {
+    if (traversal === null) return browsing === null ? 'missed' : 'wrong'
+    return traversal === take.expect ? 'correct' : 'wrong'
+  }
+
+  if (browsing === null) return traversal === null ? 'missed' : 'wrong'
+
+  return sameBrowseTarget(take.expect, browsing) ? 'correct' : 'wrong'
+}
+
+/**
+ * Whether a browsing request asked for the thing the prompt asked for.
+ *
+ * The spoken name is resolved the same way the app resolves it, rather than
+ * compared as text, so the score covers the whole path a recipient's words take
+ * and tolerates the wording the recogniser actually returns. A name that
+ * resolves to nothing is never a match: the manifest is there to show that
+ * "morning routine" and "morning walk" can be told apart, so anything short of
+ * landing on the right one is a miss.
+ */
+function sameBrowseTarget(expected: BrowseIntent, heard: BrowseIntent): boolean {
+  if (expected.kind !== heard.kind) return false
+  if (!('spoken' in expected) || !('spoken' in heard)) return true
+
+  const wanted = matchByName(SAMPLE_NAMES, expected.spoken, (name) => name)
+
+  return wanted !== null && wanted === matchByName(SAMPLE_NAMES, heard.spoken, (name) => name)
 }
 
 export type CaptureSummary = {

@@ -162,10 +162,49 @@ describe('scoreTake', () => {
   })
 
   it('scores a spoken name as browsing', () => {
-    const name = take({ purpose: 'name', expect: 'browse', say: 'Start make coffee' })
+    const name = take({
+      purpose: 'name',
+      expect: { kind: 'start', spoken: 'Make coffee' },
+      say: 'Start make coffee',
+    })
 
     expect(scoreTake({ ...name, transcript: 'start make coffee' })).toBe('correct')
     expect(scoreTake({ ...name, transcript: 'start' })).toBe('missed')
+  })
+
+  it('marks a browsing request for the wrong name wrong', () => {
+    const routine = take({
+      purpose: 'name',
+      expect: { kind: 'start', spoken: 'Morning routine' },
+      say: 'Start morning routine',
+    })
+
+    expect(scoreTake({ ...routine, transcript: 'start morning routine' })).toBe('correct')
+    // The pair the sample names exist to tell apart. Scoring the intent kind
+    // alone called this correct.
+    expect(scoreTake({ ...routine, transcript: 'start morning walk' })).toBe('wrong')
+  })
+
+  it('marks the wrong kind of browsing request wrong', () => {
+    const listing = take({
+      purpose: 'name',
+      expect: { kind: 'listRoutines', spoken: 'Kitchen' },
+      say: 'List tasks from Kitchen',
+    })
+
+    expect(scoreTake({ ...listing, transcript: 'list tasks from kitchen' })).toBe('correct')
+    expect(scoreTake({ ...listing, transcript: 'start kitchen' })).toBe('wrong')
+  })
+
+  it('scores a request that carries no name by kind alone', () => {
+    const categories = take({
+      purpose: 'name',
+      expect: { kind: 'listCategories' },
+      say: 'List my categories',
+    })
+
+    expect(scoreTake({ ...categories, transcript: 'list my categories' })).toBe('correct')
+    expect(scoreTake({ ...categories, transcript: 'start make coffee' })).toBe('wrong')
   })
 })
 

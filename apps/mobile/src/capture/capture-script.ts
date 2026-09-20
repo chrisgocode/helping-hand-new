@@ -1,3 +1,4 @@
+import type { BrowseIntent } from '../session/browse-navigation'
 import type { SessionIntent } from '../session/guided-session'
 
 /**
@@ -26,8 +27,14 @@ export type CapturePrompt = {
   /**
    * What recognition should resolve to. `null` means the utterance must not be
    * taken as a command: a false accept skips a task the recipient has not done.
+   *
+   * A browsing prompt carries the whole intent rather than the word "browse",
+   * because the interesting question about a spoken name is whether the right
+   * one was resolved. Scoring the kind alone marks "start morning walk" correct
+   * against a prompt that asked for the morning routine, which is the exact
+   * confusion the overlapping sample names exist to measure.
    */
-  readonly expect: SessionIntent | 'browse' | null
+  readonly expect: SessionIntent | BrowseIntent | null
 }
 
 /**
@@ -61,17 +68,42 @@ export const CAPTURE_SCRIPT: readonly CapturePrompt[] = [
     purpose: 'negative',
     expect: null,
   },
-  { id: 'name-categories', say: 'List my categories', purpose: 'name', expect: 'browse' },
-  { id: 'name-list-kitchen', say: 'List tasks from Kitchen', purpose: 'name', expect: 'browse' },
-  { id: 'name-start-coffee', say: 'Start make coffee', purpose: 'name', expect: 'browse' },
+  {
+    id: 'name-categories',
+    say: 'List my categories',
+    purpose: 'name',
+    expect: { kind: 'listCategories' },
+  },
+  {
+    id: 'name-list-kitchen',
+    say: 'List tasks from Kitchen',
+    purpose: 'name',
+    expect: { kind: 'listRoutines', spoken: 'Kitchen' },
+  },
+  {
+    id: 'name-start-coffee',
+    say: 'Start make coffee',
+    purpose: 'name',
+    expect: { kind: 'start', spoken: 'Make coffee' },
+  },
   {
     id: 'name-start-morning-routine',
     say: 'Start morning routine',
     purpose: 'name',
-    expect: 'browse',
+    expect: { kind: 'start', spoken: 'Morning routine' },
   },
-  { id: 'name-start-morning-walk', say: 'Start morning walk', purpose: 'name', expect: 'browse' },
-  { id: 'name-start-medication', say: 'Start take medication', purpose: 'name', expect: 'browse' },
+  {
+    id: 'name-start-morning-walk',
+    say: 'Start morning walk',
+    purpose: 'name',
+    expect: { kind: 'start', spoken: 'Morning walk' },
+  },
+  {
+    id: 'name-start-medication',
+    say: 'Start take medication',
+    purpose: 'name',
+    expect: { kind: 'start', spoken: 'Take medication' },
+  },
   {
     id: 'free-confused',
     say: "I don't understand what this step means",
