@@ -125,12 +125,14 @@ describe('recipient HTTP routes', () => {
       [shared, personal].sort(),
     )
     expect(samTasks).toMatchObject([{ id: shared }])
-    // Caretaker-only metadata never reaches a recipient.
+    // Caretaker-only metadata never reaches a recipient. Category is the one
+    // piece that does, because a recipient asks for a routine by its group.
     expect(Object.keys((samTasks as object[])[0])).toEqual([
       'id',
       'title',
       'durationSeconds',
       'children',
+      'category',
     ])
 
     const removal = await request(env, `/api/recipients/${alex.id}/tasks/${personal}`, 'DELETE', {

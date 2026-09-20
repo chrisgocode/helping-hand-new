@@ -3460,7 +3460,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskNode"][];
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        durationSeconds: number | null;
+                        children: components["schemas"]["TaskNode"][];
+                        category: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    }[];
                 };
             };
             /** @description The device is not enrolled or its access was revoked */

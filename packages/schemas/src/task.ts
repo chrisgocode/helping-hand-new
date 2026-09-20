@@ -9,7 +9,7 @@ export type TaskNode = {
   children: TaskNode[]
 }
 
-const nodeFields = {
+export const taskNodeFields = {
   id: z.uuid(),
   title: z.string().trim().min(1).max(200),
   durationSeconds: z.number().int().nonnegative().nullable(),
@@ -17,13 +17,13 @@ const nodeFields = {
 
 export const taskNodeSchema: z.ZodType<TaskNode> = z.lazy(() =>
   z.strictObject({
-    ...nodeFields,
+    ...taskNodeFields,
     children: z.array(taskNodeSchema),
   }),
 )
 
 export const taskTreeDraftSchema = z.strictObject({
-  ...nodeFields,
+  ...taskNodeFields,
   children: z.array(taskNodeSchema),
   categoryId: z.uuid().nullable().optional(),
   revision: z.number().int().nonnegative().nullable(),

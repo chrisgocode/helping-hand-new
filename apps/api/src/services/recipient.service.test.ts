@@ -204,8 +204,34 @@ describe('RecipientService', () => {
         // A summary task rolls its single actionable child's duration up.
         durationSeconds: 120,
         children: [{ id: 'child-1', title: 'Child child-1', durationSeconds: 120, children: [] }],
+        category: null,
       },
     ])
+  })
+
+  test('carries the category name a recipient would ask for, and null when uncategorised', async () => {
+    const alex = await recipients.createRecipient('caretaker-1', { displayName: 'Alex' })
+    const kitchen = '00000000-0000-4000-8000-00000000c001'
+    const categorised = await saveTree('caretaker-1', 'root-1')
+    const loose = await saveTree('caretaker-1', 'root-2')
+
+    await database
+      .prepare('INSERT INTO category (id, userId, name, position) VALUES (?, ?, ?, 0)')
+      .bind(kitchen, 'caretaker-1', 'Kitchen')
+      .run()
+    await database
+      .prepare('UPDATE task SET categoryId = ? WHERE id = ?')
+      .bind(kitchen, categorised)
+      .run()
+
+    await recipients.assignTaskTree('caretaker-1', alex.id, categorised)
+    await recipients.assignTaskTree('caretaker-1', alex.id, loose)
+
+    const trees = await recipients.getAssignedTaskTrees(alex.id)
+    const byId = new Map(trees.map((tree) => [tree.id, tree.category]))
+
+    expect(byId.get(categorised)).toEqual({ id: kitchen, name: 'Kitchen' })
+    expect(byId.get(loose)).toBeNull()
   })
 
   test('recognises only the session enrollment activated for an enabled recipient', async () => {

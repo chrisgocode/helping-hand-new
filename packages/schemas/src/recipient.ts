@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { taskNodeSchema } from './task'
+import { categoryNameSchema } from './category'
+import { taskNodeFields, taskNodeSchema } from './task'
 
 export const RECIPIENT_LIMITS = {
   maxRecipientsPerCaretaker: 25,
@@ -48,13 +49,30 @@ export const recipientIdentitySchema = z.strictObject({
 })
 
 /**
- * Assigned task trees carry no caretaker metadata: no category, no revision,
- * and no owner.
+ * The category a recipient hears a routine grouped under. Only the name a
+ * caretaker chose travels; position and timestamps stay caretaker-only.
  */
-export const recipientTaskTreeListSchema = z.array(taskNodeSchema)
+export const recipientTaskCategorySchema = z.strictObject({
+  id: z.uuid(),
+  name: categoryNameSchema,
+})
+
+/**
+ * An assigned task tree as its recipient device sees it. Category travels
+ * because a recipient asks for a routine by the group it is in; revision and
+ * owner remain caretaker metadata and are still withheld.
+ */
+export const recipientTaskTreeSchema = z.strictObject({
+  ...taskNodeFields,
+  children: z.array(taskNodeSchema),
+  category: recipientTaskCategorySchema.nullable(),
+})
+
+export const recipientTaskTreeListSchema = z.array(recipientTaskTreeSchema)
 
 export type Recipient = z.infer<typeof recipientSchema>
 export type CreateRecipientInput = z.infer<typeof createRecipientInputSchema>
 export type UpdateRecipientInput = z.infer<typeof updateRecipientInputSchema>
 export type RecipientAssignment = z.infer<typeof recipientAssignmentSchema>
 export type RecipientIdentity = z.infer<typeof recipientIdentitySchema>
+export type RecipientTaskTree = z.infer<typeof recipientTaskTreeSchema>
