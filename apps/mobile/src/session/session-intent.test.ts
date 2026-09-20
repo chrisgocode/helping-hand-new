@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COMMAND_PHRASES, recognizeIntent } from './session-intent'
+import { COMMAND_PHRASES, recognizeIntent, stopsVoiceControls } from './session-intent'
 
 describe('recognizeIntent', () => {
   it('maps spoken phrases to traversal intents', () => {
@@ -42,5 +42,12 @@ describe('recognizeIntent', () => {
     expect(COMMAND_PHRASES).toContain('done')
     expect(COMMAND_PHRASES).toContain('go back')
     expect(new Set(COMMAND_PHRASES).size).toBe(COMMAND_PHRASES.length)
+  })
+})
+
+describe('stopsVoiceControls', () => {
+  it('recognizes the spoken shutdown phrase', () => {
+    expect(stopsVoiceControls('Stop Helping Hand, please')).toBe(true)
+    expect(COMMAND_PHRASES).toContain('stop helping hand')
   })
 })

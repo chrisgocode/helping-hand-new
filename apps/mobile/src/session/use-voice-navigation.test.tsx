@@ -138,6 +138,28 @@ describe('useVoiceNavigation', () => {
     await act(() => result.current.stopListening())
   })
 
+  it('turns voice controls off when the recipient says stop helping hand', async () => {
+    const spoken: string[] = []
+    let listenCount = 0
+    const voice: VoiceInterface = {
+      async speak(text) {
+        spoken.push(text)
+      },
+      async listen() {
+        listenCount += 1
+        return 'stop helping hand'
+      },
+      async stop() {},
+    }
+    const { result } = renderHook(() => useVoiceNavigation(voice, trees))
+
+    act(() => result.current.startListening())
+
+    await waitFor(() => expect(result.current.voiceEnabled).toBe(false))
+    expect(spoken.at(-1)).toBe('Voice controls are off.')
+    expect(listenCount).toBe(1)
+  })
+
   it('treats traversal commands as traversal once a routine is running', async () => {
     const { result, spoken } = setup()
 

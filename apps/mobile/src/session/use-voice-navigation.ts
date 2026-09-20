@@ -9,7 +9,7 @@ import {
   type BrowseTransition,
   browse,
 } from './browse-navigation'
-import { COMMAND_PHRASES } from './session-intent'
+import { COMMAND_PHRASES, stopsVoiceControls } from './session-intent'
 import { buildCatalog, type CatalogCategory, catalogPhrases, findCategory } from './task-catalog'
 import { useGuidedSession } from './use-guided-session'
 
@@ -17,7 +17,7 @@ import { useGuidedSession } from './use-guided-session'
  * What became of something the recipient said. `unrecognised` is the escalation
  * point: everything the device can answer by itself has already been tried.
  */
-export type HeardResult = 'browsed' | 'traversed' | 'unrecognised'
+export type HeardResult = 'browsed' | 'stopped' | 'traversed' | 'unrecognised'
 
 export type VoiceNavigation = {
   readonly catalog: readonly CatalogCategory[]
@@ -84,8 +84,22 @@ export function useVoiceNavigation(
     [apply, catalog, position],
   )
 
+  const stopListening = useCallback(async () => {
+    listeningEnabled.current = false
+    listeningGeneration.current += 1
+    setVoiceEnabled(false)
+    setIsListening(false)
+    await voice.stop()
+  }, [voice])
+
   const hear = useCallback(
     async (transcript: string) => {
+      if (stopsVoiceControls(transcript)) {
+        await stopListening()
+        await voice.speak('Voice controls are off.')
+        return 'stopped'
+      }
+
       if (await session.hear(transcript)) return 'traversed'
 
       const browsing =
@@ -101,21 +115,13 @@ export function useVoiceNavigation(
       await request(browsing)
       return 'browsed'
     },
-    [catalog, position.kind, session, request, voice],
+    [catalog, position.kind, session, request, stopListening, voice],
   )
 
   const latestHear = useRef(hear)
   const latestContext = useRef(contextualStrings)
   latestHear.current = hear
   latestContext.current = contextualStrings
-
-  const stopListening = useCallback(async () => {
-    listeningEnabled.current = false
-    listeningGeneration.current += 1
-    setVoiceEnabled(false)
-    setIsListening(false)
-    await voice.stop()
-  }, [voice])
 
   const startListening = useCallback(() => {
     if (listeningEnabled.current) return

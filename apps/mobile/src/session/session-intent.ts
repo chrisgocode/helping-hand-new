@@ -30,11 +30,20 @@ const PHRASE_LOOKUP: ReadonlyMap<string, SessionIntent> = new Map(
   ),
 )
 
+const STOP_VOICE_CONTROLS_PHRASE = 'stop helping hand'
+
 /**
  * Every command phrase, for biasing a speech recognizer toward them. The glasses
  * microphone is narrowband and beamformed, so the recognizer needs the help.
  */
-export const COMMAND_PHRASES: readonly string[] = [...PHRASE_LOOKUP.keys()]
+export const COMMAND_PHRASES: readonly string[] = [
+  ...PHRASE_LOOKUP.keys(),
+  STOP_VOICE_CONTROLS_PHRASE,
+]
+
+export function stopsVoiceControls(transcript: string): boolean {
+  return normalize(transcript) === STOP_VOICE_CONTROLS_PHRASE
+}
 
 /**
  * Maps a transcript to a traversal intent, or null when it is not a command.
