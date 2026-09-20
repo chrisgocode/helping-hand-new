@@ -56,15 +56,6 @@ const config: ExpoConfig = {
       },
     ],
     [
-      '@chrisgocode/expo-meta-wearables-dat',
-      {
-        urlScheme: scheme,
-        metaAppId: process.env.META_APP_ID,
-        clientToken: process.env.META_CLIENT_TOKEN,
-        bluetoothUsageDescription: 'Helping Hand uses Bluetooth to communicate with Meta glasses.',
-      },
-    ],
-    [
       'expo-speech-recognition',
       {
         microphonePermission:

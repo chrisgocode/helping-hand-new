@@ -53,5 +53,12 @@
     "typescript": "~5.9.2",
     "vitest": "^4.1.11"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "@chrisgocode/expo-meta-wearables-dat"
+      ]
+    }
+  }
 }
