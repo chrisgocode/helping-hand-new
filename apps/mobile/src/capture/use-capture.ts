@@ -82,6 +82,11 @@ export function useCapture(): CaptureController {
   // A take is only committed once, whether recognition ended on its own or the
   // tester stopped it.
   const awaitingTake = useRef(false)
+  // `listening` only turns true once permission and the route are settled, so it
+  // cannot guard the startup window itself. A second tap in that window would
+  // start recognition twice against one prompt, and only a ref is current enough
+  // to see the first tap from inside the same render.
+  const startingTake = useRef(false)
 
   useSpeechRecognitionEvent('result', (event) => {
     const transcript = event.results[0]?.transcript?.trim()
@@ -165,44 +170,51 @@ export function useCapture(): CaptureController {
   )
 
   const listen = useCallback(async () => {
-    const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
-    if (!permission.granted) return
+    if (startingTake.current || listening) return
+    startingTake.current = true
 
-    const prompt = run ? currentPrompt(run) : null
+    try {
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+      if (!permission.granted) return
 
-    // The route is opened and allowed to settle before anything listens through
-    // it. Letting recognition open the session means the switch away from high
-    // quality output interrupts the very take that caused it.
-    await openHandsFreeRoute({
-      setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
-      activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
-      getRoute: () => AudioRoute.getCurrentRoute(),
-      wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-    })
-    refreshRoute()
+      const prompt = run ? currentPrompt(run) : null
 
-    heard.current = { transcript: null, uri: null, error: null }
-    awaitingTake.current = true
-    setListening(true)
+      // The route is opened and allowed to settle before anything listens through
+      // it. Letting recognition open the session means the switch away from high
+      // quality output interrupts the very take that caused it.
+      await openHandsFreeRoute({
+        setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
+        activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
+        getRoute: () => AudioRoute.getCurrentRoute(),
+        wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+      })
+      refreshRoute()
 
-    ExpoSpeechRecognitionModule.start({
-      lang: 'en-US',
-      interimResults: false,
-      continuous: false,
-      requiresOnDeviceRecognition: true,
-      addsPunctuation: false,
-      contextualStrings: CONTEXTUAL_STRINGS,
-      iosTaskHint: 'confirmation',
-      iosCategory: handsFreeCategory(),
-      recordingOptions: {
-        persist: true,
-        outputDirectory: captureDirectory().uri,
-        // Named after the prompt so a set stays readable once the files are off
-        // the device and separated from the manifest.
-        outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
-      },
-    })
-  }, [refreshRoute, run])
+      heard.current = { transcript: null, uri: null, error: null }
+      awaitingTake.current = true
+      setListening(true)
+
+      ExpoSpeechRecognitionModule.start({
+        lang: 'en-US',
+        interimResults: false,
+        continuous: false,
+        requiresOnDeviceRecognition: true,
+        addsPunctuation: false,
+        contextualStrings: CONTEXTUAL_STRINGS,
+        iosTaskHint: 'confirmation',
+        iosCategory: handsFreeCategory(),
+        recordingOptions: {
+          persist: true,
+          outputDirectory: captureDirectory().uri,
+          // Named after the prompt so a set stays readable once the files are off
+          // the device and separated from the manifest.
+          outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
+        },
+      })
+    } finally {
+      startingTake.current = false
+    }
+  }, [listening, refreshRoute, run])
 
   // Stopping only asks recognition to finish. The take is committed by the
   // `end` event, once the transcript and audio path have actually arrived.
