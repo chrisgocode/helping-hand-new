@@ -78,6 +78,13 @@ function after(normalized: string, openings: readonly string[]): string | null {
 
 const LEADING_FILLER = new Set(['okay', 'ok', 'um', 'uh', 'so', 'and', 'well', 'yeah', 'alright'])
 
+/**
+ * Closing words that carry no request. Both openings here are matched as whole
+ * utterances, so without this "list my categories please" and "go back please"
+ * fall through as if nothing had been said.
+ */
+const TRAILING_FILLER = new Set(['please', 'thanks', 'now'])
+
 function normalize(transcript: string): string {
   const words = transcript
     .toLowerCase()
@@ -89,5 +96,8 @@ function normalize(transcript: string): string {
   let start = 0
   while (start < words.length && LEADING_FILLER.has(words[start] as string)) start += 1
 
-  return words.slice(start).join(' ')
+  let end = words.length
+  while (end > start && TRAILING_FILLER.has(words[end - 1] as string)) end -= 1
+
+  return words.slice(start, end).join(' ')
 }

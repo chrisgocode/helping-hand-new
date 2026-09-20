@@ -48,10 +48,23 @@ describe('recognizeBrowseIntent', () => {
     }
   })
 
+  it('ignores closing politeness', () => {
+    expect(recognizeBrowseIntent('list my categories please')).toEqual({ kind: 'listCategories' })
+    expect(recognizeBrowseIntent('go back please')).toEqual({ kind: 'back' })
+    expect(recognizeBrowseIntent('okay list my categories now thanks')).toEqual({
+      kind: 'listCategories',
+    })
+    expect(recognizeBrowseIntent('start make coffee please')).toEqual({
+      kind: 'start',
+      spoken: 'make coffee',
+    })
+  })
+
   it('is not a browsing request without a name to act on', () => {
     expect(recognizeBrowseIntent('start')).toBeNull()
     expect(recognizeBrowseIntent('open')).toBeNull()
     expect(recognizeBrowseIntent('')).toBeNull()
     expect(recognizeBrowseIntent('what does this mean')).toBeNull()
+    expect(recognizeBrowseIntent('please')).toBeNull()
   })
 })
