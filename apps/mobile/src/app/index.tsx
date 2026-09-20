@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { enrollmentRuntime } from '@/enrollment/enrollment-runtime'
 import { useEnrollment } from '@/enrollment/use-enrollment'
+import { config } from '@/lib/config'
 import { Button } from '@/ui/button'
 
 export default function HomeScreen() {
@@ -185,6 +186,11 @@ export default function HomeScreen() {
               {state.removing ? 'Removing…' : 'Remove Helping Hand from this device'}
             </Button>
           </View>
+        )}
+        {config.captureHarness && (
+          <Button secondary onPress={() => router.push('/capture')}>
+            Capture harness
+          </Button>
         )}
       </View>
     </SafeAreaView>

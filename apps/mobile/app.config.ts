@@ -64,6 +64,15 @@ const config: ExpoConfig = {
         bluetoothUsageDescription: 'Helping Hand uses Bluetooth to communicate with Meta glasses.',
       },
     ],
+    [
+      'expo-speech-recognition',
+      {
+        microphonePermission:
+          'Allow Helping Hand to hear you so you can say Done, Repeat, or the name of a routine instead of touching your phone.',
+        speechRecognitionPermission:
+          'Allow Helping Hand to understand what you say so it can move through a routine hands free.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
