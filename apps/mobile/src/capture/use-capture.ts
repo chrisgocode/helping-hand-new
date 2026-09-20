@@ -1,9 +1,14 @@
 import { Directory, Paths } from 'expo-file-system'
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
+import {
+  ExpoSpeechRecognitionModule,
+  type SetCategoryOptions,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
 import { COMMAND_PHRASES } from '../session/session-intent'
 import { describeRoute, isCapturingThroughGlasses } from '../voice/audio-route'
+import { openHandsFreeRoute } from '../voice/hands-free-route'
 import {
   type CaptureRun,
   currentPrompt,
@@ -22,6 +27,13 @@ import { type CaptureEnvironmentId, SAMPLE_NAMES } from './capture-script'
  * use: the fixed commands, plus the names that stand in for assigned routines.
  */
 const CONTEXTUAL_STRINGS = [...COMMAND_PHRASES, ...SAMPLE_NAMES]
+
+/** The session settings the glasses microphone is only reachable through. */
+const handsFreeCategory = (): SetCategoryOptions => ({
+  category: 'playAndRecord',
+  categoryOptions: ['allowBluetooth', 'defaultToSpeaker'],
+  mode: 'measurement',
+})
 
 /**
  * Recordings and the manifest live together in the documents directory rather
@@ -157,6 +169,18 @@ export function useCapture(): CaptureController {
     if (!permission.granted) return
 
     const prompt = run ? currentPrompt(run) : null
+
+    // The route is opened and allowed to settle before anything listens through
+    // it. Letting recognition open the session means the switch away from high
+    // quality output interrupts the very take that caused it.
+    await openHandsFreeRoute({
+      setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
+      activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
+      getRoute: () => AudioRoute.getCurrentRoute(),
+      wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    })
+    refreshRoute()
+
     heard.current = { transcript: null, uri: null, error: null }
     awaitingTake.current = true
     setListening(true)
@@ -169,14 +193,7 @@ export function useCapture(): CaptureController {
       addsPunctuation: false,
       contextualStrings: CONTEXTUAL_STRINGS,
       iosTaskHint: 'confirmation',
-      // The glasses microphone only exists on the hands-free route, so the
-      // session has to be in play-and-record with Bluetooth allowed before the
-      // recogniser opens it.
-      iosCategory: {
-        category: 'playAndRecord',
-        categoryOptions: ['allowBluetooth', 'defaultToSpeaker'],
-        mode: 'measurement',
-      },
+      iosCategory: handsFreeCategory(),
       recordingOptions: {
         persist: true,
         outputDirectory: captureDirectory().uri,
@@ -185,10 +202,6 @@ export function useCapture(): CaptureController {
         outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
       },
     })
-
-    // Reading the route after the recogniser has opened the session is the only
-    // way to see which microphone it actually got.
-    refreshRoute()
   }, [refreshRoute, run])
 
   // Stopping only asks recognition to finish. The take is committed by the
