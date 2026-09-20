@@ -1,36 +1,11 @@
 import { CameraView, useCameraPermissions } from 'expo-camera'
+import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { enrollmentRuntime } from '@/enrollment/enrollment-runtime'
 import { useEnrollment } from '@/enrollment/use-enrollment'
-
-function Button({
-  children,
-  onPress,
-  secondary = false,
-  disabled = false,
-}: {
-  children: string
-  onPress: () => void
-  secondary?: boolean
-  disabled?: boolean
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        secondary && styles.secondaryButton,
-        (pressed || disabled) && styles.buttonMuted,
-      ]}
-    >
-      <Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{children}</Text>
-    </Pressable>
-  )
-}
+import { Button } from '@/ui/button'
 
 export default function HomeScreen() {
   const enrollment = useEnrollment(enrollmentRuntime)
@@ -200,6 +175,7 @@ export default function HomeScreen() {
           <View style={styles.stack}>
             <Text style={styles.title}>Hello, {state.session.recipient.displayName}</Text>
             <Text style={styles.body}>Helping Hand is enrolled on this device.</Text>
+            <Button onPress={() => router.push('/session')}>Start a routine</Button>
             {state.error && (
               <Text accessibilityLiveRegion="polite" style={styles.error}>
                 {state.error}
@@ -235,17 +211,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   camera: { flex: 1, minHeight: 280, borderRadius: 24, overflow: 'hidden' },
-  button: {
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    backgroundColor: '#18251d',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  secondaryButton: { borderColor: '#18251d', borderWidth: 1, backgroundColor: 'transparent' },
-  buttonMuted: { opacity: 0.55 },
-  buttonText: { color: '#fffdf8', fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  secondaryButtonText: { color: '#18251d' },
 })
