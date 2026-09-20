@@ -4,7 +4,7 @@ import {
   assessReadiness,
   assessRoute,
   describeRoute,
-  isCapturingThroughGlasses,
+  isCapturingThroughBluetoothMic,
 } from './audio-route'
 
 const port = (portType: string, portName: string) => ({ portType, portName })
@@ -20,14 +20,31 @@ const a2dp = route(
   [port('BluetoothA2DPOutput', 'Vanguard')],
 )
 const phone = route([port('BuiltInMic', 'iPhone Microphone')], [port('Speaker', 'Speaker')])
+// A hands-free headset that is plainly not the glasses, and is indistinguishable
+// from them through the route alone.
+const carSystem = route([port('BluetoothHFP', "Dave's Car")], [port('BluetoothHFP', "Dave's Car")])
 
 describe('assessRoute', () => {
-  it('recognises the glasses on hands-free, which is the only route with a microphone', () => {
-    expect(assessRoute(hfp)).toEqual({ kind: 'glasses', profile: 'hfp', name: 'Vanguard' })
+  it('names a Bluetooth profile rather than claiming to identify the device', () => {
+    // Port type is a profile and port name is a user-renameable label, so a car
+    // system reaches the same branch as the glasses. Calling either of them the
+    // glasses is what lets audio from the wrong device be filed as a valid
+    // wearable capture.
+    expect(assessRoute(carSystem)).toEqual({
+      kind: 'bluetooth',
+      profile: 'hfp',
+      name: "Dave's Car",
+    })
+    expect(describeRoute(carSystem)).not.toContain('glasses')
+    expect(describeRoute(hfp)).not.toContain('glasses')
+  })
+
+  it('recognises hands-free, which is the only route with a microphone', () => {
+    expect(assessRoute(hfp)).toEqual({ kind: 'bluetooth', profile: 'hfp', name: 'Vanguard' })
   })
 
   it('recognises the glasses on high quality output, which has no microphone', () => {
-    expect(assessRoute(a2dp)).toEqual({ kind: 'glasses', profile: 'a2dp', name: 'Vanguard' })
+    expect(assessRoute(a2dp)).toEqual({ kind: 'bluetooth', profile: 'a2dp', name: 'Vanguard' })
   })
 
   it('separates other Bluetooth devices from the glasses and the phone', () => {
@@ -44,13 +61,19 @@ describe('assessRoute', () => {
   })
 })
 
-describe('isCapturingThroughGlasses', () => {
+describe('isCapturingThroughBluetoothMic', () => {
+  it('reports the profile, which is all the route establishes', () => {
+    // True for any hands-free headset. Nothing downstream may read it as proof
+    // the glasses were the input.
+    expect(isCapturingThroughBluetoothMic(carSystem)).toBe(true)
+  })
+
   it('is true only when the input is the hands-free port', () => {
-    expect(isCapturingThroughGlasses(hfp)).toBe(true)
+    expect(isCapturingThroughBluetoothMic(hfp)).toBe(true)
     // Output over the glasses while the phone holds the microphone is the case
     // that would otherwise pass unnoticed and produce a worthless recording.
-    expect(isCapturingThroughGlasses(a2dp)).toBe(false)
-    expect(isCapturingThroughGlasses(phone)).toBe(false)
+    expect(isCapturingThroughBluetoothMic(a2dp)).toBe(false)
+    expect(isCapturingThroughBluetoothMic(phone)).toBe(false)
   })
 })
 

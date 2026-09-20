@@ -3,7 +3,7 @@ import { recognizeBrowseIntent } from '../session/browse-intent'
 import type { BrowseIntent } from '../session/browse-navigation'
 import { recognizeIntent } from '../session/session-intent'
 import { matchByName } from '../session/spoken-match'
-import { isCapturingThroughGlasses } from '../voice/audio-route'
+import { isCapturingThroughBluetoothMic } from '../voice/audio-route'
 import {
   CAPTURE_SCRIPT,
   type CaptureEnvironmentId,
@@ -22,8 +22,12 @@ export type CaptureTake = {
   readonly transcript: string | null
   /** Where the audio was written, for replaying against other recognisers. */
   readonly uri: string | null
-  /** Whether the glasses microphone was the input when this was recorded. */
-  readonly throughGlasses: boolean
+  /**
+   * Whether a Bluetooth hands-free microphone was the input when this was
+   * recorded. The route cannot identify the headset, so this does not say the
+   * glasses: a take still has to be read alongside the route description.
+   */
+  readonly throughBluetoothMic: boolean
   /**
    * The recogniser's error code, when it failed rather than simply hearing
    * nothing. The two are indistinguishable from an empty transcript alone, and
@@ -45,7 +49,7 @@ export type CaptureEvent =
       readonly at: string
       readonly reason: string
       readonly description: string
-      readonly throughGlasses: boolean
+      readonly throughBluetoothMic: boolean
     }
   | { readonly kind: 'interruption'; readonly at: string; readonly began: boolean }
 
@@ -105,7 +109,7 @@ export function recordTake(
     environment: run.environment,
     transcript: heard.transcript,
     uri: heard.uri,
-    throughGlasses: heard.route ? isCapturingThroughGlasses(heard.route) : false,
+    throughBluetoothMic: heard.route ? isCapturingThroughBluetoothMic(heard.route) : false,
     error: heard.error ?? null,
     recordedAt: new Date().toISOString(),
   }
@@ -184,7 +188,7 @@ export type CaptureSummary = {
   readonly missed: number
   readonly falseAccepts: number
   readonly errors: number
-  readonly throughGlasses: number
+  readonly throughBluetoothMic: number
 }
 
 /** A count the tester can read back over the phone without exporting anything. */
@@ -198,6 +202,6 @@ export function summarise(takes: readonly CaptureTake[]): CaptureSummary {
     missed: outcomes.filter((outcome) => outcome === 'missed').length,
     falseAccepts: outcomes.filter((outcome) => outcome === 'falseAccept').length,
     errors: outcomes.filter((outcome) => outcome === 'error').length,
-    throughGlasses: takes.filter((take) => take.throughGlasses).length,
+    throughBluetoothMic: takes.filter((take) => take.throughBluetoothMic).length,
   }
 }

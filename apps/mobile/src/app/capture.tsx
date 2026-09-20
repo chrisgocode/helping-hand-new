@@ -137,9 +137,12 @@ export default function CaptureScreen() {
               {capture.summary.missed} missed · {capture.summary.wrong} wrong ·{' '}
               {capture.summary.falseAccepts} false accepts · {capture.summary.errors} errors
             </Text>
+            {/* Named for what the route can actually establish. Any hands-free
+                headset presents the same way, so the route description above is
+                what says which device this was. */}
             <Text style={styles.body}>
-              {capture.summary.throughGlasses} of {capture.summary.total} were captured through the
-              glasses.
+              {capture.summary.throughBluetoothMic} of {capture.summary.total} were captured through
+              a Bluetooth microphone.
             </Text>
             <Button onPress={exportRun}>Send the results</Button>
             <Text style={styles.body}>

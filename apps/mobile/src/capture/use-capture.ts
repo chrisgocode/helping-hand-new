@@ -7,7 +7,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
 import { COMMAND_PHRASES } from '../session/session-intent'
-import { describeRoute, isCapturingThroughGlasses } from '../voice/audio-route'
+import { describeRoute, isCapturingThroughBluetoothMic } from '../voice/audio-route'
 import { openHandsFreeRoute } from '../voice/hands-free-route'
 import {
   type CaptureRun,
@@ -145,7 +145,7 @@ export function useCapture(): CaptureController {
               at: new Date().toISOString(),
               reason: event.reason,
               description: describeRoute(event),
-              throughGlasses: isCapturingThroughGlasses(event),
+              throughBluetoothMic: isCapturingThroughBluetoothMic(event),
             })
           : existing,
       )

@@ -1,5 +1,5 @@
 import type { AudioRouteDescription } from '../../modules/audio-route'
-import { isCapturingThroughGlasses } from './audio-route'
+import { isCapturingThroughBluetoothMic } from './audio-route'
 
 /**
  * What opening the route needs from the platform, named so it can be driven in
@@ -28,20 +28,21 @@ export type HandsFreeRouteOptions = {
  * same ordering: open the route, wait for it, confirm the microphone is the one
  * expected, and only then stream.
  *
- * Returns whether the glasses microphone is the input by the time it gives up.
+ * Returns whether a Bluetooth microphone is the input by the time it gives up.
+ * That is as far as the route can establish: it does not identify the headset.
  */
 export async function openHandsFreeRoute(
   deps: HandsFreeRouteDeps,
   { timeoutMs = 3000, pollMs = 250 }: HandsFreeRouteOptions = {},
 ): Promise<boolean> {
-  if (isCapturingThroughGlasses(deps.getRoute())) return true
+  if (isCapturingThroughBluetoothMic(deps.getRoute())) return true
 
   deps.setCategory()
   deps.activate()
 
   for (let waited = 0; waited < timeoutMs; waited += pollMs) {
     await deps.wait(pollMs)
-    if (isCapturingThroughGlasses(deps.getRoute())) return true
+    if (isCapturingThroughBluetoothMic(deps.getRoute())) return true
   }
 
   return false

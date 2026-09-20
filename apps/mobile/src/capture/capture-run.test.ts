@@ -31,7 +31,7 @@ const take = (overrides: Partial<CaptureTake>): CaptureTake => ({
   environment: 'quiet',
   transcript: 'done',
   uri: 'file:///take.wav',
-  throughGlasses: true,
+  throughBluetoothMic: true,
   error: null,
   recordedAt: '2026-09-20T10:00:00.000Z',
   ...overrides,
@@ -56,7 +56,7 @@ describe('walking the script', () => {
       promptId: 'cmd-done',
       transcript: 'done',
       environment: 'water',
-      throughGlasses: true,
+      throughBluetoothMic: true,
     })
     expect(currentPrompt(run)).toEqual(CAPTURE_SCRIPT[1])
   })
@@ -75,7 +75,7 @@ describe('walking the script', () => {
       route: phoneRoute,
     })
 
-    expect(run.takes[0]?.throughGlasses).toBe(false)
+    expect(run.takes[0]?.throughBluetoothMic).toBe(false)
   })
 
   it('redoes the last take', () => {
@@ -106,7 +106,7 @@ describe('recordEvent', () => {
         at: '2026-09-20T10:00:00.000Z',
         reason: 'oldDeviceUnavailable',
         description: 'This phone',
-        throughGlasses: false,
+        throughBluetoothMic: false,
       }),
       { kind: 'interruption', at: '2026-09-20T10:00:05.000Z', began: true },
     )
@@ -214,7 +214,7 @@ describe('summarise', () => {
       take({ transcript: 'done' }),
       take({ transcript: 'stop' }),
       take({ transcript: null }),
-      take({ expect: null, transcript: 'done', throughGlasses: false }),
+      take({ expect: null, transcript: 'done', throughBluetoothMic: false }),
       take({ transcript: null, error: 'service-not-allowed' }),
     ])
 
@@ -225,7 +225,7 @@ describe('summarise', () => {
       missed: 1,
       falseAccepts: 1,
       errors: 1,
-      throughGlasses: 4,
+      throughBluetoothMic: 4,
     })
   })
 })

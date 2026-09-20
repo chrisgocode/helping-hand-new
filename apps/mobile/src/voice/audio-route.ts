@@ -2,15 +2,27 @@ import type { AudioPort, AudioRouteDescription } from '../../modules/audio-route
 
 /**
  * `AVAudioSession.Port` raw values this app cares about. Hands-free is the only
- * Bluetooth profile that carries a microphone, and it is the one the glasses use.
+ * Bluetooth profile that carries a microphone, and it is the one the glasses use
+ * — along with every other hands-free headset, which is the whole difficulty
+ * below.
  */
 const BLUETOOTH_HFP = 'BluetoothHFP'
 const BLUETOOTH_A2DP = 'BluetoothA2DPOutput'
 const BLUETOOTH_LE = 'BluetoothLE'
 
-/** What the app can tell the recipient about where their audio is going. */
+/**
+ * What the app can tell the recipient about where their audio is going.
+ *
+ * Deliberately about Bluetooth profiles rather than about the glasses. A port
+ * type names a profile and a port name is a user-renameable label, so neither
+ * identifies Meta hardware: a car system or any hands-free headset presents
+ * exactly as the glasses do here. Nothing reachable from this app supplies a
+ * verified device identity — `AudioRoute` exposes only the port list, and the
+ * Wearables Device Access Toolkit is excluded from the build — so this module
+ * does not claim one.
+ */
 export type RouteAssessment =
-  | { kind: 'glasses'; profile: 'hfp' | 'a2dp'; name: string }
+  | { kind: 'bluetooth'; profile: 'hfp' | 'a2dp'; name: string }
   | { kind: 'otherBluetooth'; name: string }
   | { kind: 'phone' }
 
@@ -26,10 +38,10 @@ export type RouteAssessment =
  */
 export function assessRoute(route: AudioRouteDescription): RouteAssessment {
   const hfp = route.inputs.find((port) => port.portType === BLUETOOTH_HFP)
-  if (hfp) return { kind: 'glasses', profile: 'hfp', name: hfp.portName }
+  if (hfp) return { kind: 'bluetooth', profile: 'hfp', name: hfp.portName }
 
   const a2dp = route.outputs.find((port) => port.portType === BLUETOOTH_A2DP)
-  if (a2dp) return { kind: 'glasses', profile: 'a2dp', name: a2dp.portName }
+  if (a2dp) return { kind: 'bluetooth', profile: 'a2dp', name: a2dp.portName }
 
   const otherBluetooth = [...route.outputs, ...route.inputs].find(isBluetooth)
   if (otherBluetooth) return { kind: 'otherBluetooth', name: otherBluetooth.portName }
@@ -38,11 +50,15 @@ export function assessRoute(route: AudioRouteDescription): RouteAssessment {
 }
 
 /**
- * Whether the microphone in use is the one on the glasses. This is the check to
- * run before trusting captured audio, because everything else about a recording
- * looks identical either way.
+ * Whether the microphone in use is a Bluetooth hands-free one.
+ *
+ * This is what the route can actually establish, and it is the check to run
+ * before trusting captured audio: a take recorded through the phone microphone
+ * proves nothing about a wearable and everything else about the recording looks
+ * identical either way. It does not establish *which* headset is connected, so
+ * nothing downstream should read it as "the glasses".
  */
-export function isCapturingThroughGlasses(route: AudioRouteDescription): boolean {
+export function isCapturingThroughBluetoothMic(route: AudioRouteDescription): boolean {
   return route.inputs.some((port) => port.portType === BLUETOOTH_HFP)
 }
 
@@ -55,12 +71,12 @@ export function describeRoute(route: AudioRouteDescription): string {
   const assessment = assessRoute(route)
 
   switch (assessment.kind) {
-    case 'glasses':
+    case 'bluetooth':
       return assessment.profile === 'hfp'
-        ? `${assessment.name} — microphone and speakers (8 kHz)`
-        : `${assessment.name} — speakers only, no microphone`
+        ? `${assessment.name} — Bluetooth microphone and speakers (8 kHz)`
+        : `${assessment.name} — Bluetooth speakers only, no microphone`
     case 'otherBluetooth':
-      return `${assessment.name} — a Bluetooth device that is not the glasses`
+      return `${assessment.name} — a Bluetooth device with no usable microphone`
     case 'phone':
       return 'This phone'
   }
@@ -87,11 +103,14 @@ export function assessReadiness(
 ): RouteReadiness {
   const assessment = assessRoute(route)
 
-  if (assessment.kind === 'glasses' && assessment.profile === 'hfp') {
-    return { kind: 'ready', message: 'The glasses microphone is the input. Recordings are usable.' }
+  if (assessment.kind === 'bluetooth' && assessment.profile === 'hfp') {
+    return {
+      kind: 'ready',
+      message: `A Bluetooth microphone is the input (${assessment.name}). Recordings are usable — check the name is the glasses, which the app cannot tell on its own.`,
+    }
   }
 
-  if (assessment.kind === 'glasses') {
+  if (assessment.kind === 'bluetooth') {
     return takesRecorded === 0
       ? {
           kind: 'waiting',
@@ -108,6 +127,6 @@ export function assessReadiness(
   return {
     kind: 'wrong',
     message:
-      'The glasses are not the audio device. Connect them in Settings before recording, or the takes will capture this phone.',
+      'No Bluetooth microphone is connected. Connect the glasses in Settings before recording, or the takes will capture this phone.',
   }
 }
