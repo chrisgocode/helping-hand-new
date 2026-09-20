@@ -14,6 +14,10 @@ const RECOVERABLE_RECOGNITION_ERRORS = new Set([
   'speech-timeout',
 ])
 
+// Bluetooth output can still have a small buffered tail when narration reports
+// completion. Keep this visible for hardware tuning if a route needs more time.
+const NARRATION_TAIL_GRACE_MS = 250
+
 /**
  * Speaks through whichever output the app's audio session is routed to, which
  * is the phone speaker until a Bluetooth route is established and the glasses
@@ -127,6 +131,7 @@ export function createExpoSpeechVoice(): VoiceInterface {
         abortRecognition()
         await Speech.stop()
         await say(text)
+        await new Promise((resolve) => setTimeout(resolve, NARRATION_TAIL_GRACE_MS))
       })()
       speaking = task.catch(() => {})
       await task
