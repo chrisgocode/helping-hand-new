@@ -2,6 +2,8 @@
 
 Meta's non-display glasses expose no screen, and the Wearables Device Access Toolkit reserves display access for Ray-Ban Meta Display. Rather than reproduce the display experience with its visuals removed, we treat non-display glasses as a distinct voice-first tier: a guided session on them is a spoken conversation, and the task tree is traversed by voice command rather than by reading a step and tapping. The alternative — one wearable experience with visual elements degraded to audio — makes the audio tier a lesser copy of something it can never be, and couples every display change to an audio consequence.
 
+**Status: partly implemented.** Narration is in place, and recognition is in place as a decision — the phrase tables, the browsing grammar and the name matching all exist and are tested. What does not exist yet is the wiring between them: no recogniser forwards what it hears into navigation, so the catalog is currently walked with the on-screen buttons and only the speaking half of the conversation runs. The capture harness is the step before that wiring, because it measures whether recognition over an 8 kHz beamformed microphone is accurate enough to be trusted with traversal at all. Voice-command traversal is therefore deferred, not abandoned; the decision below is about the shape we are building toward and what follows from it.
+
 ## Considered options
 
 - **Feature parity between display and non-display glasses.** Rejected: parity forces the audio tier to describe what the display tier shows. A step rendered as text can be scanned and re-read at will; the same step spoken has to be re-requested, so the interaction model differs even when the content is identical. Parity also blocks display-only affordances that have no spoken equivalent.
