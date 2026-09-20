@@ -90,6 +90,11 @@ export function useCapture(): CaptureController {
   // start recognition twice against one prompt, and only a ref is current enough
   // to see the first tap from inside the same render.
   const startingTake = useRef(false)
+  // Recognition and the audio session both outlive a render. Leaving the screen
+  // mid-take has to tear down each of them, and the setup is asynchronous, so
+  // the continuation also has to notice it is no longer wanted.
+  const mounted = useRef(true)
+  const sessionActivated = useRef(false)
 
   useSpeechRecognitionEvent('result', (event) => {
     const transcript = event.results[0]?.transcript?.trim()
@@ -164,6 +169,33 @@ export function useCapture(): CaptureController {
     }
   }, [])
 
+  /**
+   * Cancels anything this hook started when it goes away.
+   *
+   * Without this, unmounting during setup still lets the continuation call
+   * `start`, and unmounting after it leaves recognition running against an
+   * audio session nothing will deactivate — so the phone keeps recording once
+   * the tester has left the screen. `AudioRoute` exposes no teardown of its
+   * own, so the session is deactivated through the recogniser that opened it.
+   */
+  useEffect(() => {
+    mounted.current = true
+
+    return () => {
+      mounted.current = false
+
+      if (startingTake.current || awaitingTake.current) {
+        awaitingTake.current = false
+        ExpoSpeechRecognitionModule.abort()
+      }
+
+      if (sessionActivated.current) {
+        sessionActivated.current = false
+        ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(false)
+      }
+    }
+  }, [])
+
   const begin = useCallback(
     (environment: CaptureEnvironmentId) => {
       setRun(startRun(environment))
@@ -179,7 +211,7 @@ export function useCapture(): CaptureController {
 
     try {
       const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
-      if (!permission.granted) return
+      if (!permission.granted || !mounted.current) return
 
       const prompt = run ? currentPrompt(run) : null
 
@@ -188,10 +220,14 @@ export function useCapture(): CaptureController {
       // quality output interrupts the very take that caused it.
       await openHandsFreeRoute({
         setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
-        activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
+        activate: () => {
+          sessionActivated.current = true
+          return ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true)
+        },
         getRoute: () => AudioRoute.getCurrentRoute(),
         wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       })
+      if (!mounted.current) return
       refreshRoute()
 
       heard.current = { transcript: null, uri: null, error: null }
