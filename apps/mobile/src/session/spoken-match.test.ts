@@ -36,6 +36,22 @@ describe('matchByName', () => {
     expect(matchByName(ambiguous, 'morning', nameOf)).toBeNull()
   })
 
+  it('never matches a name that normalizes to nothing', () => {
+    // Every word ignored, so containment against it would otherwise be true for
+    // any utterance and it would win as the only candidate.
+    const unreachable = [named('The list'), named('Tasks'), named('日課')]
+
+    for (const spoken of ['kitchen', 'start the gardening', 'anything at all']) {
+      expect(matchByName(unreachable, spoken, nameOf)).toBeNull()
+    }
+  })
+
+  it('does not let an unnameable item shadow a real match', () => {
+    const mixed = [named('Tasks'), named('Kitchen')]
+
+    expect(matchByName(mixed, 'kitchen', nameOf)).toEqual(named('Kitchen'))
+  })
+
   it('returns nothing for an empty or unmatched name', () => {
     expect(matchByName(items, '', nameOf)).toBeNull()
     expect(matchByName(items, 'gardening', nameOf)).toBeNull()

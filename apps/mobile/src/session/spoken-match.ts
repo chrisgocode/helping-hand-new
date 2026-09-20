@@ -18,7 +18,14 @@ export function matchByName<T>(
   const target = normalize(spoken)
   if (!target) return null
 
-  const candidates = items.map((item) => ({ item, name: normalize(nameOf(item)) }))
+  // A name that normalizes to nothing — every word ignored, as in "The list",
+  // or no ASCII letters at all — would contain and be contained by every
+  // utterance, and so would be the single candidate for anything said. It is
+  // unreachable by name whichever way this goes, and returning nothing is safer
+  // than starting a routine the recipient did not ask for.
+  const candidates = items
+    .map((item) => ({ item, name: normalize(nameOf(item)) }))
+    .filter((candidate) => candidate.name !== '')
 
   const exact = candidates.filter((candidate) => candidate.name === target)
   if (exact.length > 0) return exact.length === 1 ? (exact[0]?.item ?? null) : null
