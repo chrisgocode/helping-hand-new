@@ -1,12 +1,14 @@
 import { Directory, Paths } from 'expo-file-system'
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
 import { COMMAND_PHRASES } from '../session/session-intent'
+import { describeRoute, isCapturingThroughGlasses } from '../voice/audio-route'
 import {
   type CaptureRun,
   currentPrompt,
   isComplete,
+  recordEvent,
   recordTake,
   redoLast,
   startRun,
@@ -101,6 +103,46 @@ export function useCapture(): CaptureController {
   })
 
   const refreshRoute = useCallback(() => setRoute(AudioRoute.getCurrentRoute()), [])
+
+  /**
+   * Route changes and interruptions are recorded for the whole run, not just
+   * the take in progress. Glasses that disconnect between prompts, or a call
+   * that interrupts one, explain a stretch of empty takes that would otherwise
+   * read as the microphone being bad.
+   */
+  useEffect(() => {
+    const routeChanged = AudioRoute.addListener('onRouteChange', (event) => {
+      setRoute(event)
+      setRun((existing) =>
+        existing
+          ? recordEvent(existing, {
+              kind: 'routeChange',
+              at: new Date().toISOString(),
+              reason: event.reason,
+              description: describeRoute(event),
+              throughGlasses: isCapturingThroughGlasses(event),
+            })
+          : existing,
+      )
+    })
+
+    const interrupted = AudioRoute.addListener('onInterruption', (event) => {
+      setRun((existing) =>
+        existing
+          ? recordEvent(existing, {
+              kind: 'interruption',
+              at: new Date().toISOString(),
+              began: event.began,
+            })
+          : existing,
+      )
+    })
+
+    return () => {
+      routeChanged.remove()
+      interrupted.remove()
+    }
+  }, [])
 
   const begin = useCallback(
     (environment: CaptureEnvironmentId) => {

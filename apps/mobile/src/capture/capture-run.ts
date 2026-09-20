@@ -26,15 +26,41 @@ export type CaptureTake = {
   readonly recordedAt: string
 }
 
+/**
+ * Something that happened to the audio session during a run, rather than during
+ * one take. A pair of glasses that disconnects, or a call that interrupts
+ * recognition, explains a stretch of poor results that would otherwise read as
+ * the microphone being bad.
+ */
+export type CaptureEvent =
+  | {
+      readonly kind: 'routeChange'
+      readonly at: string
+      readonly reason: string
+      readonly description: string
+      readonly throughGlasses: boolean
+    }
+  | { readonly kind: 'interruption'; readonly at: string; readonly began: boolean }
+
 export type CaptureRun = {
   readonly environment: CaptureEnvironmentId
   readonly prompts: readonly CapturePrompt[]
   readonly index: number
   readonly takes: readonly CaptureTake[]
+  readonly events: readonly CaptureEvent[]
 }
 
 export function startRun(environment: CaptureEnvironmentId): CaptureRun {
-  return { environment, prompts: CAPTURE_SCRIPT, index: 0, takes: [] }
+  return { environment, prompts: CAPTURE_SCRIPT, index: 0, takes: [], events: [] }
+}
+
+/**
+ * Appends a session event. Events are kept whole rather than folded into the
+ * take they interrupted, because the timestamps are what let a run be read back
+ * as a sequence afterwards.
+ */
+export function recordEvent(run: CaptureRun, event: CaptureEvent): CaptureRun {
+  return { ...run, events: [...run.events, event] }
 }
 
 export function currentPrompt(run: CaptureRun): CapturePrompt | null {
@@ -80,7 +106,11 @@ export function recordTake(
   return { ...run, index: run.index + 1, takes: [...run.takes, take] }
 }
 
-/** Steps back so a take spoiled by a cough or a misread prompt can be redone. */
+/**
+ * Steps back so a take spoiled by a cough or a misread prompt can be redone.
+ * Events are left alone: a disconnect still happened, whatever became of the
+ * take that ran into it.
+ */
 export function redoLast(run: CaptureRun): CaptureRun {
   if (run.takes.length === 0) return run
 

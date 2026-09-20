@@ -4,6 +4,7 @@ import {
   type CaptureTake,
   currentPrompt,
   isComplete,
+  recordEvent,
   recordTake,
   redoLast,
   scoreTake,
@@ -94,6 +95,34 @@ describe('walking the script', () => {
 
     expect(isComplete(run)).toBe(true)
     expect(currentPrompt(run)).toBeNull()
+  })
+})
+
+describe('recordEvent', () => {
+  it('keeps session events in the order they happened', () => {
+    const run = recordEvent(
+      recordEvent(startRun('quiet'), {
+        kind: 'routeChange',
+        at: '2026-09-20T10:00:00.000Z',
+        reason: 'oldDeviceUnavailable',
+        description: 'This phone',
+        throughGlasses: false,
+      }),
+      { kind: 'interruption', at: '2026-09-20T10:00:05.000Z', began: true },
+    )
+
+    expect(run.events.map((event) => event.kind)).toEqual(['routeChange', 'interruption'])
+  })
+
+  it('keeps an event even when the take that ran into it is redone', () => {
+    const withEvent = recordEvent(
+      recordTake(startRun('quiet'), { transcript: 'done', uri: null, route: null }),
+      { kind: 'interruption', at: '2026-09-20T10:00:05.000Z', began: true },
+    )
+
+    // The disconnect still happened, whatever became of the take.
+    expect(redoLast(withEvent).events).toHaveLength(1)
+    expect(redoLast(withEvent).takes).toHaveLength(0)
   })
 })
 

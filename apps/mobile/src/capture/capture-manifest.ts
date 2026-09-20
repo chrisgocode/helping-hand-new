@@ -12,6 +12,8 @@ export type CaptureManifest = {
   }
   readonly summary: CaptureSummary
   readonly takes: readonly (CaptureRun['takes'][number] & { readonly outcome: string })[]
+  /** Route changes and interruptions, in the order they happened. */
+  readonly events: CaptureRun['events']
 }
 
 /**
@@ -37,6 +39,7 @@ export function buildManifest(
     },
     summary: summarise(run.takes),
     takes: run.takes.map((take) => ({ ...take, outcome: scoreTake(take) })),
+    events: run.events,
   }
 }
 
