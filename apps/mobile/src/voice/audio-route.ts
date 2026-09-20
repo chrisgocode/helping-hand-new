@@ -65,3 +65,49 @@ export function describeRoute(route: AudioRouteDescription): string {
       return 'This phone'
   }
 }
+
+/** How a route should be read to someone about to record, or already recording. */
+export type RouteReadiness =
+  | { kind: 'ready'; message: string }
+  | { kind: 'waiting'; message: string }
+  | { kind: 'wrong'; message: string }
+
+/**
+ * Explains a route in terms of what the tester should do about it.
+ *
+ * Output-only over the glasses is the normal resting state, not a fault: the
+ * hands-free route carries the microphone and is mutually exclusive with high
+ * quality output, so it only opens once a take starts. Saying otherwise before
+ * anything has been recorded tells a tester to fix something that is not broken.
+ * The same route part-way through a run does mean something went wrong.
+ */
+export function assessReadiness(
+  route: AudioRouteDescription,
+  { takesRecorded }: { takesRecorded: number },
+): RouteReadiness {
+  const assessment = assessRoute(route)
+
+  if (assessment.kind === 'glasses' && assessment.profile === 'hfp') {
+    return { kind: 'ready', message: 'The glasses microphone is the input. Recordings are usable.' }
+  }
+
+  if (assessment.kind === 'glasses') {
+    return takesRecorded === 0
+      ? {
+          kind: 'waiting',
+          message:
+            'Connected for sound. The microphone opens by itself when you start a take — this is the normal state before then.',
+        }
+      : {
+          kind: 'wrong',
+          message:
+            'The microphone has dropped back to sound only. Stop, reconnect the glasses, and redo the last take.',
+        }
+  }
+
+  return {
+    kind: 'wrong',
+    message:
+      'The glasses are not the audio device. Connect them in Settings before recording, or the takes will capture this phone.',
+  }
+}

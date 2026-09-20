@@ -8,7 +8,7 @@ import { buildManifest, manifestFileName } from '@/capture/capture-manifest'
 import { CAPTURE_ENVIRONMENTS } from '@/capture/capture-script'
 import { CAPTURE_DIRECTORY, currentPrompt, isComplete, useCapture } from '@/capture/use-capture'
 import { Button } from '@/ui/button'
-import { describeRoute, isCapturingThroughGlasses } from '@/voice/audio-route'
+import { assessReadiness, describeRoute } from '@/voice/audio-route'
 
 /**
  * A recording harness, not part of the recipient experience. It exists so one
@@ -20,6 +20,7 @@ export default function CaptureScreen() {
   const { run, route } = capture
   const prompt = run ? currentPrompt(run) : null
   const lastTake = run?.takes.at(-1) ?? null
+  const readiness = route ? assessReadiness(route, { takesRecorded: run?.takes.length ?? 0 }) : null
 
   const exportRun = async () => {
     if (!run) return
@@ -48,10 +49,12 @@ export default function CaptureScreen() {
           <Text accessibilityLiveRegion="polite" style={styles.routeValue}>
             {route ? describeRoute(route) : 'Not checked yet'}
           </Text>
-          {route && !isCapturingThroughGlasses(route) && (
-            <Text style={styles.warning}>
-              The glasses microphone is not the input. Recordings made now capture the phone and
-              cannot be used. Connect the glasses, then start a take to open the hands-free route.
+          {readiness && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={readiness.kind === 'wrong' ? styles.warning : styles.routeNote}
+            >
+              {readiness.message}
             </Text>
           )}
           <Button secondary onPress={capture.refreshRoute}>
@@ -167,4 +170,5 @@ const styles = StyleSheet.create({
   lastTake: { gap: 8, padding: 16, borderRadius: 14, backgroundColor: '#ece4d4' },
   routeValue: { color: '#18251d', fontSize: 18, fontWeight: '600' },
   warning: { color: '#9b2c2c', fontSize: 15, lineHeight: 22 },
+  routeNote: { color: '#405047', fontSize: 15, lineHeight: 22 },
 })

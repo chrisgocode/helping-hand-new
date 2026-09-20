@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { AudioRouteDescription } from '../../modules/audio-route'
-import { assessRoute, describeRoute, isCapturingThroughGlasses } from './audio-route'
+import {
+  assessReadiness,
+  assessRoute,
+  describeRoute,
+  isCapturingThroughGlasses,
+} from './audio-route'
 
 const port = (portType: string, portName: string) => ({ portType, portName })
 
@@ -54,5 +59,31 @@ describe('describeRoute', () => {
     expect(describeRoute(hfp)).toContain('microphone and speakers')
     expect(describeRoute(a2dp)).toContain('no microphone')
     expect(describeRoute(phone)).toBe('This phone')
+  })
+})
+
+describe('assessReadiness', () => {
+  it('calls output-only normal before anything has been recorded', () => {
+    const readiness = assessReadiness(a2dp, { takesRecorded: 0 })
+
+    expect(readiness.kind).toBe('waiting')
+    expect(readiness.message).toContain('normal state')
+  })
+
+  it('calls the same route a fault once takes exist', () => {
+    const readiness = assessReadiness(a2dp, { takesRecorded: 4 })
+
+    expect(readiness.kind).toBe('wrong')
+    expect(readiness.message).toContain('redo the last take')
+  })
+
+  it('confirms the hands-free route is usable', () => {
+    expect(assessReadiness(hfp, { takesRecorded: 0 }).kind).toBe('ready')
+    expect(assessReadiness(hfp, { takesRecorded: 9 }).kind).toBe('ready')
+  })
+
+  it('is always wrong when the glasses are not the audio device', () => {
+    expect(assessReadiness(phone, { takesRecorded: 0 }).kind).toBe('wrong')
+    expect(assessReadiness(phone, { takesRecorded: 9 }).kind).toBe('wrong')
   })
 })
