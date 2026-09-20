@@ -31,7 +31,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>RECIPIENT APP</Text>
+        <Text style={styles.eyebrow}>HELPING HAND</Text>
 
         {state.status === 'loading' && (
           <View style={styles.centered} accessibilityLabel="Opening Helping Hand">
@@ -176,7 +176,7 @@ export default function HomeScreen() {
           <View style={styles.stack}>
             <Text style={styles.title}>Hello, {state.session.recipient.displayName}</Text>
             <Text style={styles.body}>Helping Hand is enrolled on this device.</Text>
-            <Button onPress={() => router.push('/session')}>Start a routine</Button>
+            <Button onPress={() => router.push('/session')}>Choose a routine</Button>
             {state.error && (
               <Text accessibilityLiveRegion="polite" style={styles.error}>
                 {state.error}
