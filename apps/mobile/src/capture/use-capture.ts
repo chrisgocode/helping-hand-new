@@ -60,10 +60,14 @@ export function useCapture(): CaptureController {
   const [run, setRun] = useState<CaptureRun | null>(null)
   const [listening, setListening] = useState(false)
   const [route, setRoute] = useState<AudioRouteDescription | null>(null)
-  const heard = useRef<{ transcript: string | null; uri: string | null }>({
+  const heard = useRef<{ transcript: string | null; uri: string | null; error: string | null }>({
     transcript: null,
     uri: null,
+    error: null,
   })
+  // A take is only committed once, whether recognition ended on its own or the
+  // tester stopped it.
+  const awaitingTake = useRef(false)
 
   useSpeechRecognitionEvent('result', (event) => {
     const transcript = event.results[0]?.transcript?.trim()
@@ -74,7 +78,27 @@ export function useCapture(): CaptureController {
     heard.current.uri = event.uri ?? null
   })
 
-  useSpeechRecognitionEvent('end', () => setListening(false))
+  useSpeechRecognitionEvent('error', (event) => {
+    heard.current.error = event.error ?? 'unknown'
+  })
+
+  /**
+   * The take is recorded here rather than when the tester stops it. On iOS a
+   * final result only arrives after recognition has stopped, and the audio path
+   * arrives later still, so reading either at the moment of stopping captures
+   * nothing at all.
+   */
+  useSpeechRecognitionEvent('end', () => {
+    setListening(false)
+    if (!awaitingTake.current) return
+    awaitingTake.current = false
+
+    const current = AudioRoute.getCurrentRoute()
+    setRoute(current)
+    setRun((existing) =>
+      existing ? recordTake(existing, { ...heard.current, route: current }) : existing,
+    )
+  })
 
   const refreshRoute = useCallback(() => setRoute(AudioRoute.getCurrentRoute()), [])
 
@@ -91,7 +115,8 @@ export function useCapture(): CaptureController {
     if (!permission.granted) return
 
     const prompt = run ? currentPrompt(run) : null
-    heard.current = { transcript: null, uri: null }
+    heard.current = { transcript: null, uri: null, error: null }
+    awaitingTake.current = true
     setListening(true)
 
     ExpoSpeechRecognitionModule.start({
@@ -124,14 +149,10 @@ export function useCapture(): CaptureController {
     refreshRoute()
   }, [refreshRoute, run])
 
+  // Stopping only asks recognition to finish. The take is committed by the
+  // `end` event, once the transcript and audio path have actually arrived.
   const finishTake = useCallback(() => {
     ExpoSpeechRecognitionModule.stop()
-    const current = AudioRoute.getCurrentRoute()
-    setRoute(current)
-
-    setRun((existing) =>
-      existing ? recordTake(existing, { ...heard.current, route: current }) : existing,
-    )
   }, [])
 
   const redo = useCallback(

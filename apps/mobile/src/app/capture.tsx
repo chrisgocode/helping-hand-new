@@ -19,6 +19,7 @@ export default function CaptureScreen() {
   const capture = useCapture()
   const { run, route } = capture
   const prompt = run ? currentPrompt(run) : null
+  const lastTake = run?.takes.at(-1) ?? null
 
   const exportRun = async () => {
     if (!run) return
@@ -89,6 +90,28 @@ export default function CaptureScreen() {
               <Button onPress={capture.listen}>Start take</Button>
             )}
 
+            {/* Without this a tester can work through the whole script while
+                every take comes back empty, and only find out afterwards. */}
+            {lastTake && (
+              <View style={styles.lastTake}>
+                <Text style={styles.routeLabel}>LAST TAKE · {lastTake.say}</Text>
+                {lastTake.error ? (
+                  <Text accessibilityLiveRegion="polite" style={styles.warning}>
+                    The recogniser failed: {lastTake.error}. Stop and report this rather than
+                    working through the rest.
+                  </Text>
+                ) : lastTake.transcript ? (
+                  <Text accessibilityLiveRegion="polite" style={styles.routeValue}>
+                    Heard “{lastTake.transcript}”
+                  </Text>
+                ) : (
+                  <Text accessibilityLiveRegion="polite" style={styles.warning}>
+                    Nothing was heard. If this happens on every take, stop and report it.
+                  </Text>
+                )}
+              </View>
+            )}
+
             <Button secondary disabled={run.takes.length === 0} onPress={capture.redo}>
               Redo the last one
             </Button>
@@ -101,7 +124,7 @@ export default function CaptureScreen() {
             <Text style={styles.body}>
               {capture.summary.correct} of {capture.summary.total} correct ·{' '}
               {capture.summary.missed} missed · {capture.summary.wrong} wrong ·{' '}
-              {capture.summary.falseAccepts} false accepts
+              {capture.summary.falseAccepts} false accepts · {capture.summary.errors} errors
             </Text>
             <Text style={styles.body}>
               {capture.summary.throughGlasses} of {capture.summary.total} were captured through the
@@ -141,6 +164,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd3c0',
   },
   routeLabel: { color: '#9b4d24', fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  lastTake: { gap: 8, padding: 16, borderRadius: 14, backgroundColor: '#ece4d4' },
   routeValue: { color: '#18251d', fontSize: 18, fontWeight: '600' },
   warning: { color: '#9b2c2c', fontSize: 15, lineHeight: 22 },
 })

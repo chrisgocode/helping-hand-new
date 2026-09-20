@@ -17,6 +17,12 @@ export type CaptureTake = {
   readonly uri: string | null
   /** Whether the glasses microphone was the input when this was recorded. */
   readonly throughGlasses: boolean
+  /**
+   * The recogniser's error code, when it failed rather than simply hearing
+   * nothing. The two are indistinguishable from an empty transcript alone, and
+   * they mean opposite things about whether voice control is viable.
+   */
+  readonly error: string | null
   readonly recordedAt: string
 }
 
@@ -48,7 +54,12 @@ export function isComplete(run: CaptureRun): boolean {
  */
 export function recordTake(
   run: CaptureRun,
-  heard: { transcript: string | null; uri: string | null; route: AudioRouteDescription | null },
+  heard: {
+    transcript: string | null
+    uri: string | null
+    route: AudioRouteDescription | null
+    error?: string | null
+  },
 ): CaptureRun {
   const prompt = currentPrompt(run)
   if (!prompt) return run
@@ -62,6 +73,7 @@ export function recordTake(
     transcript: heard.transcript,
     uri: heard.uri,
     throughGlasses: heard.route ? isCapturingThroughGlasses(heard.route) : false,
+    error: heard.error ?? null,
     recordedAt: new Date().toISOString(),
   }
 
@@ -75,7 +87,7 @@ export function redoLast(run: CaptureRun): CaptureRun {
   return { ...run, index: run.index - 1, takes: run.takes.slice(0, -1) }
 }
 
-export type TakeOutcome = 'correct' | 'wrong' | 'missed' | 'falseAccept'
+export type TakeOutcome = 'correct' | 'wrong' | 'missed' | 'falseAccept' | 'error'
 
 /**
  * Scores one take against what the prompt expected.
@@ -86,6 +98,10 @@ export type TakeOutcome = 'correct' | 'wrong' | 'missed' | 'falseAccept'
  * command that was never given is the failure that costs a recipient a task.
  */
 export function scoreTake(take: CaptureTake): TakeOutcome {
+  // A failed recogniser is not evidence about speech, so it is never scored as
+  // a hit or a miss. Counting it either way would describe the harness rather
+  // than the microphone.
+  if (take.error !== null) return 'error'
   if (take.transcript === null) return take.expect === null ? 'correct' : 'missed'
 
   const traversal = recognizeIntent(take.transcript)
@@ -104,6 +120,7 @@ export type CaptureSummary = {
   readonly wrong: number
   readonly missed: number
   readonly falseAccepts: number
+  readonly errors: number
   readonly throughGlasses: number
 }
 
@@ -117,6 +134,7 @@ export function summarise(takes: readonly CaptureTake[]): CaptureSummary {
     wrong: outcomes.filter((outcome) => outcome === 'wrong').length,
     missed: outcomes.filter((outcome) => outcome === 'missed').length,
     falseAccepts: outcomes.filter((outcome) => outcome === 'falseAccept').length,
+    errors: outcomes.filter((outcome) => outcome === 'error').length,
     throughGlasses: takes.filter((take) => take.throughGlasses).length,
   }
 }

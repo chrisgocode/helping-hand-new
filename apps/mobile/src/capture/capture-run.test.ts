@@ -31,6 +31,7 @@ const take = (overrides: Partial<CaptureTake>): CaptureTake => ({
   transcript: 'done',
   uri: 'file:///take.wav',
   throughGlasses: true,
+  error: null,
   recordedAt: '2026-09-20T10:00:00.000Z',
   ...overrides,
 })
@@ -97,6 +98,15 @@ describe('walking the script', () => {
 })
 
 describe('scoreTake', () => {
+  it('never scores a failed recogniser as a hit or a miss', () => {
+    // A recogniser that errored says nothing about the microphone, and counting
+    // it as a miss would read as poor recognition rather than a broken run.
+    expect(scoreTake(take({ transcript: null, error: 'service-not-allowed' }))).toBe('error')
+    expect(scoreTake(take({ expect: null, transcript: null, error: 'audio-capture' }))).toBe(
+      'error',
+    )
+  })
+
   it('counts a command heard correctly', () => {
     expect(scoreTake(take({ transcript: 'done' }))).toBe('correct')
     expect(scoreTake(take({ transcript: 'Done.' }))).toBe('correct')
@@ -137,15 +147,17 @@ describe('summarise', () => {
       take({ transcript: 'stop' }),
       take({ transcript: null }),
       take({ expect: null, transcript: 'done', throughGlasses: false }),
+      take({ transcript: null, error: 'service-not-allowed' }),
     ])
 
     expect(summary).toEqual({
-      total: 4,
+      total: 5,
       correct: 1,
       wrong: 1,
       missed: 1,
       falseAccepts: 1,
-      throughGlasses: 3,
+      errors: 1,
+      throughGlasses: 4,
     })
   })
 })
