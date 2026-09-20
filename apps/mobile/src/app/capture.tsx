@@ -115,7 +115,15 @@ export default function CaptureScreen() {
               </View>
             )}
 
-            <Button secondary disabled={run.takes.length === 0} onPress={capture.redo}>
+            {/* Redo rewinds the run, so it has to stay disabled from the moment
+                a take starts being set up. `listen` has already captured the
+                prompt it is recording against, and would commit that audio
+                against whichever prompt a redo rewound to. */}
+            <Button
+              secondary
+              disabled={capture.starting || capture.listening || run.takes.length === 0}
+              onPress={capture.redo}
+            >
               Redo the last one
             </Button>
           </View>

@@ -51,6 +51,8 @@ function captureDirectory(): Directory {
 
 export type CaptureController = {
   readonly run: CaptureRun | null
+  /** Whether a take is being set up: permission, route, and recogniser start. */
+  readonly starting: boolean
   readonly listening: boolean
   readonly route: AudioRouteDescription | null
   readonly summary: ReturnType<typeof summarise> | null
@@ -72,6 +74,7 @@ export type CaptureController = {
  */
 export function useCapture(): CaptureController {
   const [run, setRun] = useState<CaptureRun | null>(null)
+  const [starting, setStarting] = useState(false)
   const [listening, setListening] = useState(false)
   const [route, setRoute] = useState<AudioRouteDescription | null>(null)
   const heard = useRef<{ transcript: string | null; uri: string | null; error: string | null }>({
@@ -172,6 +175,7 @@ export function useCapture(): CaptureController {
   const listen = useCallback(async () => {
     if (startingTake.current || listening) return
     startingTake.current = true
+    setStarting(true)
 
     try {
       const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
@@ -213,6 +217,7 @@ export function useCapture(): CaptureController {
       })
     } finally {
       startingTake.current = false
+      setStarting(false)
     }
   }, [listening, refreshRoute, run])
 
@@ -229,6 +234,7 @@ export function useCapture(): CaptureController {
 
   return {
     run,
+    starting,
     listening,
     route,
     summary: run && isComplete(run) ? summarise(run.takes) : null,
