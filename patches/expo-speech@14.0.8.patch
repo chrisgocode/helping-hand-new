@@ -1,0 +1,50 @@
+diff --git a/build/Speech.types.d.ts b/build/Speech.types.d.ts
+index 847222904628b7f3c5c39600b293f357e63beba8..7f0396efb65348e62f08478c58d683c9269f8043 100644
+--- a/build/Speech.types.d.ts
++++ b/build/Speech.types.d.ts
+@@ -72,7 +72,8 @@ export type SpeechOptions = {
+  */
+ export declare enum VoiceQuality {
+     Default = "Default",
+-    Enhanced = "Enhanced"
++    Enhanced = "Enhanced",
++    Premium = "Premium"
+ }
+ /**
+  * Object describing the available voices on the device.
+diff --git a/build/Speech.types.js b/build/Speech.types.js
+index 2ae2571002a38b5e5a766a4e28965cf028ff45da..0aba22bb88791f56c397a3e4cfae110bcd06834c 100644
+--- a/build/Speech.types.js
++++ b/build/Speech.types.js
+@@ -6,5 +6,6 @@ export var VoiceQuality;
+ (function (VoiceQuality) {
+     VoiceQuality["Default"] = "Default";
+     VoiceQuality["Enhanced"] = "Enhanced";
++    VoiceQuality["Premium"] = "Premium";
+ })(VoiceQuality || (VoiceQuality = {}));
+ //# sourceMappingURL=Speech.types.js.map
+diff --git a/ios/SpeechModule.swift b/ios/SpeechModule.swift
+index 485d5d3bea38e5937e7b0c229549e6d78b30e9c9..d81b3a64f15e2ba5cc6627ba837624e8ddbef611 100644
+--- a/ios/SpeechModule.swift
++++ b/ios/SpeechModule.swift
+@@ -60,10 +60,19 @@ public final class SpeechModule: Module, SpeechResultHadler {
+       let voices = AVSpeechSynthesisVoice.speechVoices()
+ 
+       let availableVoicesResult = voices.map { voice in
++        let quality: String
++        if #available(iOS 16.0, tvOS 16.0, macOS 13.0, *), voice.quality == .premium {
++          quality = "Premium"
++        } else if voice.quality == .enhanced {
++          quality = "Enhanced"
++        } else {
++          quality = "Default"
++        }
++
+         VoiceInfo(
+           identifier: voice.identifier,
+           name: voice.name,
+-          quality: voice.quality == .enhanced ? "Enhanced" : "Default",
++          quality: quality,
+           language: voice.language
+         )
+       }

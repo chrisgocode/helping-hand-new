@@ -36,9 +36,16 @@ export function createExpoSpeechVoice(): VoiceInterface {
   let recognitionActive = false
   let interruption = 0
   let speaking: Promise<void> = Promise.resolve()
-  const enhancedEnglishVoice = Speech.getAvailableVoicesAsync()
+  const preferredEnglishVoice = Speech.getAvailableVoicesAsync()
     .then(
       (voices) =>
+        voices.find(
+          (voice) => voice.quality === Speech.VoiceQuality.Premium && voice.language === 'en-US',
+        )?.identifier ??
+        voices.find(
+          (voice) =>
+            voice.quality === Speech.VoiceQuality.Premium && voice.language.startsWith('en-'),
+        )?.identifier ??
         voices.find(
           (voice) => voice.quality === Speech.VoiceQuality.Enhanced && voice.language === 'en-US',
         )?.identifier ??
@@ -52,7 +59,7 @@ export function createExpoSpeechVoice(): VoiceInterface {
   // expo-speech queues an utterance when one is already in progress, and
   // resolves nothing on its own, so both interface guarantees are built here.
   const say = async (text: string) => {
-    const voice = await enhancedEnglishVoice
+    const voice = await preferredEnglishVoice
 
     return new Promise<void>((resolve, reject) => {
       Speech.speak(text, {

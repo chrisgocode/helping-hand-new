@@ -18,7 +18,7 @@ vi.mock('expo-speech', () => ({
   getAvailableVoicesAsync: speech.getAvailableVoicesAsync,
   speak: speech.speak,
   stop: vi.fn(async () => {}),
-  VoiceQuality: { Default: 'Default', Enhanced: 'Enhanced' },
+  VoiceQuality: { Default: 'Default', Enhanced: 'Enhanced', Premium: 'Premium' },
 }))
 
 vi.mock('expo-speech-recognition', () => ({
@@ -61,12 +61,13 @@ afterEach(() => {
 })
 
 describe('createExpoSpeechVoice', () => {
-  it('uses an installed enhanced US English voice', async () => {
+  it('prefers an installed premium US English voice', async () => {
     vi.useFakeTimers()
     speech.getAvailableVoicesAsync.mockResolvedValue([
       { identifier: 'default', language: 'en-US', quality: 'Default' },
-      { identifier: 'enhanced-gb', language: 'en-GB', quality: 'Enhanced' },
       { identifier: 'enhanced-us', language: 'en-US', quality: 'Enhanced' },
+      { identifier: 'premium-gb', language: 'en-GB', quality: 'Premium' },
+      { identifier: 'premium-us', language: 'en-US', quality: 'Premium' },
     ])
     speech.speak.mockImplementation((_text, options) => options.onDone())
 
@@ -76,7 +77,7 @@ describe('createExpoSpeechVoice', () => {
 
     expect(speech.speak).toHaveBeenCalledWith(
       'Hello',
-      expect.objectContaining({ language: 'en-US', voice: 'enhanced-us' }),
+      expect.objectContaining({ language: 'en-US', voice: 'premium-us' }),
     )
   })
 

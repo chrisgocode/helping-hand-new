@@ -27,6 +27,7 @@
     "turbo": "^2.10.12"
   },
   "patchedDependencies": {
-    "react-native@0.81.5": "patches/react-native@0.81.5.patch"
+    "react-native@0.81.5": "patches/react-native@0.81.5.patch",
+    "expo-speech@14.0.8": "patches/expo-speech@14.0.8.patch"
   }
 }
