@@ -97,6 +97,28 @@ describe('useAssignedTasks', () => {
     )
   })
 
+  it('reports a failure to read secure storage instead of hanging', async () => {
+    const storage: EnrollmentStorage = {
+      ...storageReturning({ status: 'none' }),
+      restore: async () => {
+        throw new Error('Keychain unavailable')
+      },
+    }
+    const getAssignedTaskTrees = vi.fn(async () => [tree])
+
+    const { result } = renderHook(() =>
+      useAssignedTasks({ storage, api: { getAssignedTaskTrees } }),
+    )
+
+    await waitFor(() =>
+      expect(result.current.state).toEqual({
+        status: 'error',
+        message: 'The assigned routines could not be loaded.',
+      }),
+    )
+    expect(getAssignedTaskTrees).not.toHaveBeenCalled()
+  })
+
   it('reloads on request', async () => {
     const getAssignedTaskTrees = vi.fn(async () => [tree])
     const { result } = render(activeSession, { getAssignedTaskTrees })

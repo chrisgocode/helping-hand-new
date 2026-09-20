@@ -47,13 +47,16 @@ export function useAssignedTasks({ storage, api }: AssignedTasksDependencies) {
 
     const { storage: store, api: client } = dependencies.current
 
-    const restored = await store.restore()
-    if (restored.status !== 'active') {
-      setState({ status: 'unenrolled' })
-      return
-    }
-
     try {
+      // Restoring reads secure storage, which can reject. Left outside this
+      // block it produced an unhandled rejection and the screen stayed on
+      // "loading" with nothing to act on.
+      const restored = await store.restore()
+      if (restored.status !== 'active') {
+        setState({ status: 'unenrolled' })
+        return
+      }
+
       setState({
         status: 'ready',
         trees: await client.getAssignedTaskTrees(restored.session.token),
