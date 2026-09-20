@@ -45,6 +45,18 @@ describe('useVoiceNavigation', () => {
     expect(result.current.position).toEqual({ kind: 'catalog' })
   })
 
+  it('opens a category by its name after listing categories', async () => {
+    const { result, spoken } = setup()
+
+    await act(() => result.current.hear('list my categories'))
+    await act(async () => {
+      expect(await result.current.hear('kitchen')).toBe('browsed')
+    })
+
+    expect(result.current.position).toMatchObject({ kind: 'category' })
+    expect(spoken.at(-1)).toContain('Make coffee')
+  })
+
   it('narrows into a category and reads its routines', async () => {
     const { result, spoken } = setup()
 
@@ -96,6 +108,36 @@ describe('useVoiceNavigation', () => {
     await act(() => result.current.stopListening())
   })
 
+  it('keeps listening after an unrecognised utterance', async () => {
+    const spoken: string[] = []
+    const transcripts = ['start make coffee', 'something else', 'next']
+    let finishListening = (_transcript: string | null) => {}
+    const voice: VoiceInterface = {
+      async speak(text) {
+        spoken.push(text)
+      },
+      async listen() {
+        return (
+          transcripts.shift() ??
+          new Promise<string | null>((resolve) => {
+            finishListening = resolve
+          })
+        )
+      },
+      async stop() {
+        finishListening(null)
+      },
+    }
+    const { result } = renderHook(() => useVoiceNavigation(voice, trees))
+
+    act(() => result.current.startListening())
+
+    await waitFor(() => expect(spoken.at(-1)).toBe('Next, Pour the water.'))
+    expect(result.current.voiceEnabled).toBe(true)
+
+    await act(() => result.current.stopListening())
+  })
+
   it('treats traversal commands as traversal once a routine is running', async () => {
     const { result, spoken } = setup()
 
@@ -119,15 +161,14 @@ describe('useVoiceNavigation', () => {
     expect(result.current.session.task?.title).toBe('Take medication')
   })
 
-  it('reports anything it cannot answer, for escalation', async () => {
+  it('asks the recipient to retry anything it cannot answer', async () => {
     const { result, spoken } = setup()
-    const before = spoken.length
 
     await act(async () => {
       expect(await result.current.hear('why do I have to do this')).toBe('unrecognised')
     })
 
-    expect(spoken).toHaveLength(before)
+    expect(spoken.at(-1)).toBe('I did not understand. Please try again.')
   })
 
   it('explains an unknown name rather than guessing', async () => {

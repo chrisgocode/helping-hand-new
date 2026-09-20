@@ -8,7 +8,7 @@ import type { SessionIntent } from './guided-session'
 const INTENT_PHRASES: Readonly<Record<SessionIntent, readonly string[]>> = {
   next: ['next', 'done', 'finished', 'complete', 'next step', 'im done', 'i am done', 'all done'],
   back: ['back', 'go back', 'previous', 'last one', 'go back a step'],
-  repeat: ['repeat', 'again', 'say that again', 'what was that', 'one more time'],
+  repeat: ['repeat', 'again', 'say that again', 'say it again', 'what was that', 'one more time'],
   duration: ['how long', 'how long is this', 'how long should i do that', 'how much time'],
   preview: ['whats next', 'what is next', 'what comes next', 'preview'],
   pause: ['pause', 'hold on', 'wait', 'one moment'],

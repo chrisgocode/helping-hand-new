@@ -9,6 +9,8 @@ import type { VoiceInterface } from './voice-interface'
 
 const RECOVERABLE_RECOGNITION_ERRORS = new Set([
   'aborted',
+  'audio-capture',
+  'busy',
   'interrupted',
   'no-speech',
   'speech-timeout',
@@ -17,6 +19,10 @@ const RECOVERABLE_RECOGNITION_ERRORS = new Set([
 // Bluetooth output can still have a small buffered tail when narration reports
 // completion. Keep this visible for hardware tuning if a route needs more time.
 const NARRATION_TAIL_GRACE_MS = 250
+const RECOGNITION_RETRY_DELAY_MS = 250
+
+const wait = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 
 /**
  * Speaks through whichever output the app's audio session is routed to, which
@@ -30,12 +36,28 @@ export function createExpoSpeechVoice(): VoiceInterface {
   let recognitionActive = false
   let interruption = 0
   let speaking: Promise<void> = Promise.resolve()
+  const enhancedEnglishVoice = Speech.getAvailableVoicesAsync()
+    .then(
+      (voices) =>
+        voices.find(
+          (voice) => voice.quality === Speech.VoiceQuality.Enhanced && voice.language === 'en-US',
+        )?.identifier ??
+        voices.find(
+          (voice) =>
+            voice.quality === Speech.VoiceQuality.Enhanced && voice.language.startsWith('en-'),
+        )?.identifier,
+    )
+    .catch(() => undefined)
 
   // expo-speech queues an utterance when one is already in progress, and
   // resolves nothing on its own, so both interface guarantees are built here.
-  const say = (text: string) =>
-    new Promise<void>((resolve, reject) => {
+  const say = async (text: string) => {
+    const voice = await enhancedEnglishVoice
+
+    return new Promise<void>((resolve, reject) => {
       Speech.speak(text, {
+        language: 'en-US',
+        voice,
         onDone: () => resolve(),
         // A replaced utterance is the expected case, not a failure: the session
         // has already moved on and is about to speak the line that replaced it.
@@ -43,6 +65,7 @@ export function createExpoSpeechVoice(): VoiceInterface {
         onError: (error) => reject(error),
       })
     })
+  }
 
   const abortRecognition = () => {
     if (recognitionActive) ExpoSpeechRecognitionModule.abort()
@@ -73,7 +96,7 @@ export function createExpoSpeechVoice(): VoiceInterface {
       setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
       activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
       getRoute: () => AudioRoute.getCurrentRoute(),
-      wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+      wait,
     })
   }
 
@@ -100,7 +123,12 @@ export function createExpoSpeechVoice(): VoiceInterface {
           return
         }
 
-        resolve(error ? null : transcript)
+        if (error) {
+          setTimeout(() => resolve(null), RECOGNITION_RETRY_DELAY_MS)
+          return
+        }
+
+        resolve(transcript)
       })
 
       recognitionActive = true
@@ -131,7 +159,7 @@ export function createExpoSpeechVoice(): VoiceInterface {
         abortRecognition()
         await Speech.stop()
         await say(text)
-        await new Promise((resolve) => setTimeout(resolve, NARRATION_TAIL_GRACE_MS))
+        await wait(NARRATION_TAIL_GRACE_MS)
       })()
       speaking = task.catch(() => {})
       await task

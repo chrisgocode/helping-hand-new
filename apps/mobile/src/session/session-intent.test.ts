@@ -6,6 +6,7 @@ describe('recognizeIntent', () => {
     expect(recognizeIntent('done')).toBe('next')
     expect(recognizeIntent('go back')).toBe('back')
     expect(recognizeIntent('say that again')).toBe('repeat')
+    expect(recognizeIntent('say it again')).toBe('repeat')
     expect(recognizeIntent('how long')).toBe('duration')
     expect(recognizeIntent("what's next")).toBe('preview')
     expect(recognizeIntent('hold on')).toBe('pause')

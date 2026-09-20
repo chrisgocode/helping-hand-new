@@ -10,7 +10,7 @@ import {
   browse,
 } from './browse-navigation'
 import { COMMAND_PHRASES } from './session-intent'
-import { buildCatalog, type CatalogCategory, catalogPhrases } from './task-catalog'
+import { buildCatalog, type CatalogCategory, catalogPhrases, findCategory } from './task-catalog'
 import { useGuidedSession } from './use-guided-session'
 
 /**
@@ -88,13 +88,20 @@ export function useVoiceNavigation(
     async (transcript: string) => {
       if (await session.hear(transcript)) return 'traversed'
 
-      const browsing = recognizeBrowseIntent(transcript)
-      if (!browsing) return 'unrecognised'
+      const browsing =
+        recognizeBrowseIntent(transcript) ??
+        (position.kind === 'catalog' && findCategory(catalog, transcript)
+          ? { kind: 'listRoutines' as const, spoken: transcript }
+          : null)
+      if (!browsing) {
+        await voice.speak('I did not understand. Please try again.')
+        return 'unrecognised'
+      }
 
       await request(browsing)
       return 'browsed'
     },
-    [session, request],
+    [catalog, position.kind, session, request, voice],
   )
 
   const latestHear = useRef(hear)
