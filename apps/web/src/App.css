@@ -785,6 +785,10 @@
   transform: translateX(4px);
 }
 
+.task-card:has(.library-task-menu[open]) {
+  z-index: 1;
+}
+
 .task-card-link {
   min-width: 0;
   min-height: 98px;
