@@ -1,5 +1,13 @@
+import type { SetCategoryOptions } from 'expo-speech-recognition'
 import type { AudioRouteDescription } from '../../modules/audio-route'
-import { isCapturingThroughBluetoothMic } from './audio-route'
+import { assessRoute, isCapturingThroughBluetoothMic } from './audio-route'
+
+/** The audio-session settings that make a Bluetooth microphone available. */
+export const handsFreeCategory = (): SetCategoryOptions => ({
+  category: 'playAndRecord',
+  categoryOptions: ['allowBluetooth', 'defaultToSpeaker'],
+  mode: 'measurement',
+})
 
 /**
  * What opening the route needs from the platform, named so it can be driven in
@@ -35,10 +43,16 @@ export async function openHandsFreeRoute(
   deps: HandsFreeRouteDeps,
   { timeoutMs = 3000, pollMs = 250 }: HandsFreeRouteOptions = {},
 ): Promise<boolean> {
-  if (isCapturingThroughBluetoothMic(deps.getRoute())) return true
+  const initial = deps.getRoute()
+  if (isCapturingThroughBluetoothMic(initial)) return true
 
   deps.setCategory()
   deps.activate()
+
+  // A phone microphone is ready as soon as the audio session opens. Only an
+  // output-only Bluetooth route needs time to rebuild itself as hands-free.
+  const route = assessRoute(initial)
+  if (route.kind !== 'bluetooth' || route.profile !== 'a2dp') return false
 
   for (let waited = 0; waited < timeoutMs; waited += pollMs) {
     await deps.wait(pollMs)

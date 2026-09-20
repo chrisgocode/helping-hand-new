@@ -1,14 +1,10 @@
 import { Directory, Paths } from 'expo-file-system'
-import {
-  ExpoSpeechRecognitionModule,
-  type SetCategoryOptions,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition'
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
 import { COMMAND_PHRASES } from '../session/session-intent'
 import { describeRoute, isCapturingThroughBluetoothMic } from '../voice/audio-route'
-import { openHandsFreeRoute } from '../voice/hands-free-route'
+import { handsFreeCategory, openHandsFreeRoute } from '../voice/hands-free-route'
 import {
   type CaptureRun,
   currentPrompt,
@@ -27,13 +23,6 @@ import { type CaptureEnvironmentId, SAMPLE_NAMES } from './capture-script'
  * use: the fixed commands, plus the names that stand in for assigned routines.
  */
 const CONTEXTUAL_STRINGS = [...COMMAND_PHRASES, ...SAMPLE_NAMES]
-
-/** The session settings the glasses microphone is only reachable through. */
-const handsFreeCategory = (): SetCategoryOptions => ({
-  category: 'playAndRecord',
-  categoryOptions: ['allowBluetooth', 'defaultToSpeaker'],
-  mode: 'measurement',
-})
 
 /**
  * Recordings and the manifest live together in the documents directory rather

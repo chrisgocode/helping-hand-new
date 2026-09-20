@@ -23,7 +23,13 @@ export default function SessionScreen() {
   const { session, position } = navigation
 
   const leave = async () => {
+    await navigation.stopListening()
     await session.end()
+    router.back()
+  }
+
+  const goBack = async () => {
+    await navigation.stopListening()
     router.back()
   }
 
@@ -32,6 +38,7 @@ export default function SessionScreen() {
     return (
       <Screen>
         <View style={styles.stack}>
+          <VoiceControls navigation={navigation} />
           {task && (
             <>
               <Text style={styles.eyebrow}>{task.path.join(' · ').toUpperCase()}</Text>
@@ -109,9 +116,10 @@ export default function SessionScreen() {
 
       {state.status === 'ready' && navigation.catalog.length > 0 && (
         <ScrollView contentContainerStyle={styles.stack}>
+          <VoiceControls navigation={navigation} />
           {position.kind === 'catalog' ? (
             <>
-              <Text style={styles.eyebrow}>CHOOSE A GROUP</Text>
+              <Text style={styles.eyebrow}>CHOOSE A CATEGORY</Text>
               <Button secondary onPress={() => navigation.request({ kind: 'listCategories' })}>
                 Hear my options
               </Button>
@@ -138,16 +146,43 @@ export default function SessionScreen() {
                 </Button>
               ))}
               <Button secondary onPress={() => navigation.request({ kind: 'back' })}>
-                Other groups
+                Other categories
               </Button>
             </>
           )}
-          <Button secondary onPress={() => router.back()}>
+          <Button secondary onPress={goBack}>
             Go back
           </Button>
         </ScrollView>
       )}
     </Screen>
+  )
+}
+
+function VoiceControls({ navigation }: { navigation: ReturnType<typeof useVoiceNavigation> }) {
+  const status = navigation.voiceError
+    ? navigation.voiceError
+    : navigation.voiceEnabled
+      ? navigation.isListening
+        ? 'Listening…'
+        : 'Responding…'
+      : 'Say “list my categories,” “start” and a routine name, or a task command.'
+
+  return (
+    <View style={styles.voiceControls}>
+      <Text
+        accessibilityLiveRegion={navigation.voiceError ? 'assertive' : 'polite'}
+        style={navigation.voiceError ? styles.error : styles.body}
+      >
+        {status}
+      </Text>
+      <Button
+        secondary={navigation.voiceEnabled}
+        onPress={navigation.voiceEnabled ? navigation.stopListening : navigation.startListening}
+      >
+        {navigation.voiceEnabled ? 'Turn off voice controls' : 'Start voice controls'}
+      </Button>
+    </View>
   )
 }
 
@@ -178,6 +213,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
   stack: { flexGrow: 1, justifyContent: 'center', gap: 18 },
   controls: { gap: 12 },
+  voiceControls: { gap: 12 },
   eyebrow: { color: '#9b4d24', fontSize: 13, fontWeight: '700', letterSpacing: 1.5 },
   heading: { color: '#18251d', fontSize: 30, fontWeight: '700', letterSpacing: -0.8 },
   // The current task is the whole screen's purpose, so it is sized to be read

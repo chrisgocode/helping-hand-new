@@ -23,6 +23,9 @@ function createRecordingVoice() {
     async speak(text) {
       spoken.push(text)
     },
+    async listen() {
+      return null
+    },
     async stop() {
       stopped += 1
     },
@@ -112,6 +115,7 @@ describe('useGuidedSession', () => {
         new Promise<void>((resolve) => {
           release = resolve
         }),
+      listen: async () => null,
       stop: async () => {},
     }
 

@@ -77,7 +77,7 @@ export function useGuidedSession(voice: VoiceInterface): GuidedSessionController
   const hear = useCallback(
     async (transcript: string) => {
       const intent = recognizeIntent(transcript)
-      if (!intent) return false
+      if (!intent || !latest.current || !currentTask(latest.current)) return false
 
       await submit(intent)
       return true

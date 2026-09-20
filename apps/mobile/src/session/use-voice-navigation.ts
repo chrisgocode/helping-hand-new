@@ -1,5 +1,5 @@
 import type { RecipientTaskTree } from '@helping-hand/schemas'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VoiceInterface } from '../voice/voice-interface'
 import { recognizeBrowseIntent } from './browse-intent'
 import { narrateBrowse } from './browse-narration'
@@ -9,8 +9,8 @@ import {
   type BrowseTransition,
   browse,
 } from './browse-navigation'
-import { recognizeIntent } from './session-intent'
-import { buildCatalog, type CatalogCategory } from './task-catalog'
+import { COMMAND_PHRASES } from './session-intent'
+import { buildCatalog, type CatalogCategory, catalogPhrases } from './task-catalog'
 import { useGuidedSession } from './use-guided-session'
 
 /**
@@ -24,8 +24,13 @@ export type VoiceNavigation = {
   readonly position: BrowsePosition
   readonly session: ReturnType<typeof useGuidedSession>
   readonly isRunning: boolean
+  readonly voiceEnabled: boolean
+  readonly isListening: boolean
+  readonly voiceError: string | null
   request(intent: BrowseIntent): Promise<void>
   hear(transcript: string): Promise<HeardResult>
+  startListening(): void
+  stopListening(): Promise<void>
 }
 
 /**
@@ -43,8 +48,17 @@ export function useVoiceNavigation(
 ): VoiceNavigation {
   const catalog = useMemo(() => buildCatalog(trees), [trees])
   const [position, setPosition] = useState<BrowsePosition>({ kind: 'catalog' })
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const listeningGeneration = useRef(0)
+  const listeningEnabled = useRef(false)
   const session = useGuidedSession(voice)
   const isRunning = session.task !== null
+  const contextualStrings = useMemo(
+    () => [...COMMAND_PHRASES, ...catalogPhrases(catalog)],
+    [catalog],
+  )
 
   const apply = useCallback(
     async ({ position: next, effect }: BrowseTransition) => {
@@ -72,13 +86,7 @@ export function useVoiceNavigation(
 
   const hear = useCallback(
     async (transcript: string) => {
-      if (isRunning) {
-        const traversal = recognizeIntent(transcript)
-        if (traversal) {
-          await session.submit(traversal)
-          return 'traversed'
-        }
-      }
+      if (await session.hear(transcript)) return 'traversed'
 
       const browsing = recognizeBrowseIntent(transcript)
       if (!browsing) return 'unrecognised'
@@ -86,8 +94,73 @@ export function useVoiceNavigation(
       await request(browsing)
       return 'browsed'
     },
-    [isRunning, session, request],
+    [session, request],
   )
 
-  return { catalog, position, session, isRunning, request, hear }
+  const latestHear = useRef(hear)
+  const latestContext = useRef(contextualStrings)
+  latestHear.current = hear
+  latestContext.current = contextualStrings
+
+  const stopListening = useCallback(async () => {
+    listeningEnabled.current = false
+    listeningGeneration.current += 1
+    setVoiceEnabled(false)
+    setIsListening(false)
+    await voice.stop()
+  }, [voice])
+
+  const startListening = useCallback(() => {
+    if (listeningEnabled.current) return
+
+    listeningEnabled.current = true
+    const generation = ++listeningGeneration.current
+    setVoiceEnabled(true)
+    setVoiceError(null)
+
+    void (async () => {
+      try {
+        while (listeningEnabled.current && generation === listeningGeneration.current) {
+          setIsListening(true)
+          const transcript = await voice.listen(latestContext.current)
+          setIsListening(false)
+
+          if (!listeningEnabled.current || generation !== listeningGeneration.current) return
+          if (transcript) await latestHear.current(transcript)
+        }
+      } catch (error) {
+        if (generation !== listeningGeneration.current) return
+
+        listeningEnabled.current = false
+        setVoiceEnabled(false)
+        setIsListening(false)
+        setVoiceError(
+          error instanceof Error ? error.message : 'Voice recognition stopped. Tap to try again.',
+        )
+      }
+    })()
+  }, [voice])
+
+  useEffect(
+    () => () => {
+      listeningEnabled.current = false
+      listeningGeneration.current += 1
+      void voice.stop()
+    },
+    [voice],
+  )
+
+  return {
+    catalog,
+    position,
+    session,
+    isRunning,
+    voiceEnabled,
+    isListening,
+    voiceError,
+    request,
+    hear,
+    startListening,
+    stopListening,
+  }
 }

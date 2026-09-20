@@ -1,5 +1,5 @@
 import type { RecipientTaskTree } from '@helping-hand/schemas'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { VoiceInterface } from '../voice/voice-interface'
 import { useVoiceNavigation } from './use-voice-navigation'
@@ -25,6 +25,9 @@ function setup() {
   const voice: VoiceInterface = {
     async speak(text) {
       spoken.push(text)
+    },
+    async listen() {
+      return null
     },
     async stop() {},
   }
@@ -60,6 +63,37 @@ describe('useVoiceNavigation', () => {
     expect(result.current.session.task?.title).toBe('Fill the kettle')
     expect(spoken).toContain('Starting Make coffee.')
     expect(spoken.at(-1)).toContain('Fill the kettle')
+  })
+
+  it('keeps listening through a complete routine', async () => {
+    const spoken: string[] = []
+    const transcripts = ['start make coffee', 'done', 'done']
+    let finishListening = (_transcript: string | null) => {}
+    const voice: VoiceInterface = {
+      async speak(text) {
+        spoken.push(text)
+      },
+      async listen() {
+        return (
+          transcripts.shift() ??
+          new Promise<string | null>((resolve) => {
+            finishListening = resolve
+          })
+        )
+      },
+      async stop() {
+        finishListening(null)
+      },
+    }
+    const { result } = renderHook(() => useVoiceNavigation(voice, trees))
+
+    act(() => result.current.startListening())
+
+    await waitFor(() => expect(spoken.at(-1)).toBe('That is everything. Nice work.'))
+    expect(result.current.session.task).toBeNull()
+    expect(result.current.voiceEnabled).toBe(true)
+
+    await act(() => result.current.stopListening())
   })
 
   it('treats traversal commands as traversal once a routine is running', async () => {

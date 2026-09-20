@@ -12,6 +12,11 @@ const a2dp: AudioRouteDescription = {
   outputs: [{ portType: 'BluetoothA2DPOutput', portName: 'Meta Glasses' }],
 }
 
+const phone: AudioRouteDescription = {
+  inputs: [{ portType: 'BuiltInMic', portName: 'iPhone Microphone' }],
+  outputs: [{ portType: 'Speaker', portName: 'Speaker' }],
+}
+
 /** A route that flips to hands-free after a given number of polls. */
 function deps(settlesAfterPolls: number, start: AudioRouteDescription = a2dp) {
   let polls = 0
@@ -50,6 +55,15 @@ describe('openHandsFreeRoute', () => {
     expect(await openHandsFreeRoute(object)).toBe(true)
     expect(calls.setCategory).toBe(1)
     expect(calls.activate).toBe(1)
+  })
+
+  it('opens a phone route without waiting for Bluetooth', async () => {
+    const wait = vi.fn(async () => {})
+    const { object } = deps(Number.POSITIVE_INFINITY, phone)
+    object.wait = wait
+
+    expect(await openHandsFreeRoute(object)).toBe(false)
+    expect(wait).not.toHaveBeenCalled()
   })
 
   it('gives up rather than reporting a route it never got', async () => {
