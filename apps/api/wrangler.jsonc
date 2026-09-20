@@ -14,7 +14,7 @@
     "APP_ENV": "production",
     "BETTER_AUTH_URL": "https://api.helpinghand.chrisgo.dev",
     "TRUSTED_ORIGIN": "https://helpinghand.chrisgo.dev",
-    "OPENROUTER_MODEL": "z-ai/glm-5.2:free"
+    "OPENROUTER_MODEL": "openrouter/free"
   },
   "secrets": {
     "required": ["BETTER_AUTH_SECRET", "OPENROUTER_API_KEY"]
