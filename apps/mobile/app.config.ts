@@ -16,6 +16,13 @@ const config: ExpoConfig = {
     bundleIdentifier: 'dev.chrisgo.helpinghand',
     supportsTablet: false,
     config: { usesNonExemptEncryption: false },
+    infoPlist: {
+      // Capture sets are collected on a borrowed device and have to leave it.
+      // Both keys are needed for the folder to appear in Files, where a tester
+      // can send the whole set at once instead of one file at a time.
+      UIFileSharingEnabled: true,
+      LSSupportsOpeningDocumentsInPlace: true,
+    },
   },
   android: {
     package: 'dev.chrisgo.helpinghand',

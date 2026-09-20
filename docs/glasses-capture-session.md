@@ -41,12 +41,21 @@ Budget about 40 minutes.
 
 ## What comes back
 
-Three files, one per place. Each holds what the recogniser heard, how each take
-scored, the audio path, and whether the glasses microphone was really the input.
+Everything lands in one folder on the tester's phone: three manifests, one per
+place, and a recording per prompt named after the prompt it answers. Each
+manifest holds what the recogniser heard, how each take scored, the path to its
+audio, and whether the glasses microphone was really the input.
 
-Ask for the audio files too — they are in the app's cache directory, and they are
-the part that can be replayed against a different recogniser later. The scores in
-the file only reflect the recogniser as configured on the day.
+Two ways to get it back, and the second matters more:
+
+- **"Send the results"** shares that place's manifest through the usual share
+  sheet — AirDrop, Messages, Mail, Files. Nothing is uploaded anywhere; it goes
+  wherever the tester picks and nowhere else.
+- **The Files app** shows the folder under On My iPhone → Helping Hand →
+  captures. Ask them to send that whole folder, because it holds the audio. The
+  scores in a manifest only reflect the recogniser as configured on the day, and
+  the recordings are what let a different one be tried later without borrowing
+  the glasses again.
 
 ## Reading the results
 

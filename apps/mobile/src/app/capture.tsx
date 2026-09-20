@@ -1,4 +1,4 @@
-import { File, Paths } from 'expo-file-system'
+import { File } from 'expo-file-system'
 import { router } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import { StatusBar } from 'expo-status-bar'
@@ -6,7 +6,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { buildManifest, manifestFileName } from '@/capture/capture-manifest'
 import { CAPTURE_ENVIRONMENTS } from '@/capture/capture-script'
-import { currentPrompt, isComplete, useCapture } from '@/capture/use-capture'
+import { CAPTURE_DIRECTORY, currentPrompt, isComplete, useCapture } from '@/capture/use-capture'
 import { Button } from '@/ui/button'
 import { describeRoute, isCapturingThroughGlasses } from '@/voice/audio-route'
 
@@ -23,7 +23,7 @@ export default function CaptureScreen() {
   const exportRun = async () => {
     if (!run) return
 
-    const file = new File(Paths.cache, manifestFileName(run))
+    const file = new File(CAPTURE_DIRECTORY, manifestFileName(run))
     file.create({ overwrite: true })
     file.write(
       JSON.stringify(
@@ -108,6 +108,10 @@ export default function CaptureScreen() {
               glasses.
             </Text>
             <Button onPress={exportRun}>Send the results</Button>
+            <Text style={styles.body}>
+              The recordings stay on this phone, in Files under Helping Hand. Send that folder too
+              so the same words can be tried against a different recogniser later.
+            </Text>
           </View>
         )}
 

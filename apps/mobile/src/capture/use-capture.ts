@@ -1,3 +1,4 @@
+import { Directory, Paths } from 'expo-file-system'
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { useCallback, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
@@ -19,6 +20,20 @@ import { type CaptureEnvironmentId, SAMPLE_NAMES } from './capture-script'
  * use: the fixed commands, plus the names that stand in for assigned routines.
  */
 const CONTEXTUAL_STRINGS = [...COMMAND_PHRASES, ...SAMPLE_NAMES]
+
+/**
+ * Recordings and the manifest live together in the documents directory rather
+ * than the cache. The cache is purged under storage pressure, which would leave
+ * a manifest pointing at audio that no longer exists, and only the documents
+ * directory is reachable from the Files app — which is how a tester sends the
+ * whole set back without exporting one file at a time.
+ */
+export const CAPTURE_DIRECTORY = new Directory(Paths.document, 'captures')
+
+function captureDirectory(): Directory {
+  if (!CAPTURE_DIRECTORY.exists) CAPTURE_DIRECTORY.create({ intermediates: true })
+  return CAPTURE_DIRECTORY
+}
 
 export type CaptureController = {
   readonly run: CaptureRun | null
@@ -75,6 +90,7 @@ export function useCapture(): CaptureController {
     const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
     if (!permission.granted) return
 
+    const prompt = run ? currentPrompt(run) : null
     heard.current = { transcript: null, uri: null }
     setListening(true)
 
@@ -94,13 +110,19 @@ export function useCapture(): CaptureController {
         categoryOptions: ['allowBluetooth', 'defaultToSpeaker'],
         mode: 'measurement',
       },
-      recordingOptions: { persist: true },
+      recordingOptions: {
+        persist: true,
+        outputDirectory: captureDirectory().uri,
+        // Named after the prompt so a set stays readable once the files are off
+        // the device and separated from the manifest.
+        outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
+      },
     })
 
     // Reading the route after the recogniser has opened the session is the only
     // way to see which microphone it actually got.
     refreshRoute()
-  }, [refreshRoute])
+  }, [refreshRoute, run])
 
   const finishTake = useCallback(() => {
     ExpoSpeechRecognitionModule.stop()
