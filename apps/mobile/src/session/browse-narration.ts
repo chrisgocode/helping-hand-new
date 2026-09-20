@@ -7,33 +7,38 @@ import type { BrowseEffect } from './browse-navigation'
  * back at one. Long lists are read in full anyway rather than truncated, because
  * a routine that is never spoken is a routine they cannot start, but the count
  * is said first so they know how long they are listening for.
+ *
+ * Nothing yet forwards recognised speech into browsing — the screen's buttons
+ * are the only way to choose — so the prompts point at those rather than
+ * inviting a reply that nothing is listening for. They move back to spoken
+ * instructions when a recogniser is wired to `useVoiceNavigation`.
  */
 export function narrateBrowse(effect: BrowseEffect): string {
   switch (effect.kind) {
     case 'categories': {
       const names = effect.categories.map((category) => category.name)
-      return `You have ${countOf(names.length, 'group')}: ${spokenList(names)}. Say the name of one to hear what is in it.`
+      return `You have ${countOf(names.length, 'group')}: ${spokenList(names)}. Use the buttons on the screen to choose a group.`
     }
 
     case 'routines': {
       const titles = effect.category.routines.map((routine) => routine.title)
-      return `${effect.category.name} has ${countOf(titles.length, 'routine')}: ${spokenList(titles)}. Say start, then the name of one.`
+      return `${effect.category.name} has ${countOf(titles.length, 'routine')}: ${spokenList(titles)}. Use the buttons on the screen to start one.`
     }
 
     case 'nothingAssigned':
       return 'Nothing is assigned to this device yet. Ask your caretaker to add a routine.'
 
     case 'unknownCategory':
-      return `I could not find a group called ${effect.spoken}. Say list my categories to hear them.`
+      return `I could not find a group called ${effect.spoken}. Use the buttons on the screen to see your groups.`
 
     case 'unknownRoutine':
-      return `I could not find a routine called ${effect.spoken}. Say list my categories to hear what you have.`
+      return `I could not find a routine called ${effect.spoken}. Use the buttons on the screen to see what you have.`
 
     case 'starting':
       return `Starting ${effect.routine.title}.`
 
     case 'atCatalog':
-      return 'You are at the top. Say list my categories to hear them.'
+      return 'You are at the top. Use the buttons on the screen to see your groups.'
   }
 }
 

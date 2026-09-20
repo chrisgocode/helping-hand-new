@@ -12,13 +12,13 @@ const catalog = buildCatalog([
 describe('narrateBrowse', () => {
   it('counts the groups before reading them', () => {
     expect(narrateBrowse({ kind: 'categories', categories: catalog })).toBe(
-      'You have 1 group: Kitchen. Say the name of one to hear what is in it.',
+      'You have 1 group: Kitchen. Use the buttons on the screen to choose a group.',
     )
   })
 
   it('reads the routines in a category', () => {
     expect(narrateBrowse({ kind: 'routines', category: catalog[0] as never })).toBe(
-      'Kitchen has 2 routines: Wash up and Make coffee. Say start, then the name of one.',
+      'Kitchen has 2 routines: Wash up and Make coffee. Use the buttons on the screen to start one.',
     )
   })
 
