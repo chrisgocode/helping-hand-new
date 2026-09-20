@@ -40,7 +40,8 @@ index 485d5d3bea38e5937e7b0c229549e6d78b30e9c9..d81b3a64f15e2ba5cc6627ba837624e8
 +          quality = "Default"
 +        }
 +
-         VoiceInfo(
+-        VoiceInfo(
++        return VoiceInfo(
            identifier: voice.identifier,
            name: voice.name,
 -          quality: voice.quality == .enhanced ? "Enhanced" : "Default",
