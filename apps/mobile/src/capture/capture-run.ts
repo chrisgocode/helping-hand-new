@@ -1,6 +1,6 @@
 import type { AudioRouteDescription } from '../../modules/audio-route'
 import { recognizeBrowseIntent } from '../session/browse-intent'
-import type { BrowseIntent } from '../session/browse-navigation'
+import type { SpokenBrowseIntent } from '../session/browse-navigation'
 import { recognizeIntent } from '../session/session-intent'
 import { matchByName } from '../session/spoken-match'
 import { isCapturingThroughBluetoothMic } from '../voice/audio-route'
@@ -172,7 +172,7 @@ export function scoreTake(take: CaptureTake): TakeOutcome {
  * "morning routine" and "morning walk" can be told apart, so anything short of
  * landing on the right one is a miss.
  */
-function sameBrowseTarget(expected: BrowseIntent, heard: BrowseIntent): boolean {
+function sameBrowseTarget(expected: SpokenBrowseIntent, heard: SpokenBrowseIntent): boolean {
   if (expected.kind !== heard.kind) return false
   if (!('spoken' in expected) || !('spoken' in heard)) return true
 

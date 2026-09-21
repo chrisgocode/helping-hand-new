@@ -1,4 +1,4 @@
-import type { BrowseIntent } from '../session/browse-navigation'
+import type { SpokenBrowseIntent } from '../session/browse-navigation'
 import type { SessionIntent } from '../session/guided-session'
 
 /**
@@ -33,8 +33,11 @@ export type CapturePrompt = {
    * one was resolved. Scoring the kind alone marks "start morning walk" correct
    * against a prompt that asked for the morning routine, which is the exact
    * confusion the overlapping sample names exist to measure.
+   *
+   * Only the spoken shape: a script lists what a tester says out loud, so it
+   * can never expect the id-carrying form a screen produces.
    */
-  readonly expect: SessionIntent | BrowseIntent | null
+  readonly expect: SessionIntent | SpokenBrowseIntent | null
 }
 
 /**

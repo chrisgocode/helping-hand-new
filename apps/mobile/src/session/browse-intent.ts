@@ -1,4 +1,4 @@
-import type { BrowseIntent } from './browse-navigation'
+import type { SpokenBrowseIntent } from './browse-navigation'
 
 /**
  * Openings that ask for the list of categories, matched as whole utterances.
@@ -46,7 +46,7 @@ const START_OPENINGS = ['start the', 'begin the', 'lets do', 'let us do', 'start
  * category or routine is left to the catalog, which is the only thing that knows
  * what was assigned.
  */
-export function recognizeBrowseIntent(transcript: string): BrowseIntent | null {
+export function recognizeBrowseIntent(transcript: string): SpokenBrowseIntent | null {
   const normalized = normalize(transcript)
   if (!normalized) return null
 
