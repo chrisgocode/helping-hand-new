@@ -127,7 +127,7 @@ export default function SessionScreen() {
                 <Button
                   key={category.id}
                   onPress={() =>
-                    navigation.request({ kind: 'listRoutines', spoken: category.name })
+                    navigation.request({ kind: 'openCategory', categoryId: category.id })
                   }
                 >
                   {`${category.name} · ${category.routines.length}`}
@@ -140,7 +140,9 @@ export default function SessionScreen() {
               {position.category.routines.map((routine) => (
                 <Button
                   key={routine.id}
-                  onPress={() => navigation.request({ kind: 'start', spoken: routine.title })}
+                  onPress={() =>
+                    navigation.request({ kind: 'startRoutine', routineId: routine.id })
+                  }
                 >
                   {routine.title}
                 </Button>
