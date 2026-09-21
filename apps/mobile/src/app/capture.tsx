@@ -1,5 +1,5 @@
 import { File } from 'expo-file-system'
-import { router } from 'expo-router'
+import { Redirect, router } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import { StatusBar } from 'expo-status-bar'
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -7,15 +7,32 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { buildManifest, manifestFileName } from '@/capture/capture-manifest'
 import { CAPTURE_ENVIRONMENTS } from '@/capture/capture-script'
 import { CAPTURE_DIRECTORY, currentPrompt, isComplete, useCapture } from '@/capture/use-capture'
+import { config } from '@/lib/config'
 import { Button } from '@/ui/button'
 import { assessReadiness, describeRoute } from '@/voice/audio-route'
+
+/**
+ * Refuses the harness anywhere it is not enabled.
+ *
+ * Expo Router registers routes from the filesystem, so `/capture` exists in
+ * every build whether or not anything links to it. Hiding the entry point on
+ * the home screen is therefore not enough on its own: the app registers the
+ * `helpinghand` scheme, so `helpinghand://capture` would still open a recording
+ * screen on a recipient's phone. The route turns itself away instead of
+ * trusting that nothing navigates to it.
+ */
+export default function CaptureRoute() {
+  if (!config.captureHarness) return <Redirect href="/" />
+
+  return <CaptureScreen />
+}
 
 /**
  * A recording harness, not part of the recipient experience. It exists so one
  * session with borrowed hardware yields a set that can be scored again later
  * without asking for the hardware back.
  */
-export default function CaptureScreen() {
+function CaptureScreen() {
   const capture = useCapture()
   const { run, route } = capture
   const prompt = run ? currentPrompt(run) : null
