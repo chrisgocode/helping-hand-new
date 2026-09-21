@@ -34,6 +34,12 @@ export function narrateBrowse(effect: BrowseEffect): string {
 
     case 'atCatalog':
       return 'You are at the top. Say list my categories to hear them.'
+
+    // Nothing was misheard here — the recipient pressed a button for something
+    // that has since left their list — so the wording says what changed rather
+    // than apologising for not understanding them.
+    case 'selectionUnavailable':
+      return 'That is not on your list any more. Say list my categories to hear what you have.'
   }
 }
 

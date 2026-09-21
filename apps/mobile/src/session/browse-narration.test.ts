@@ -27,6 +27,15 @@ describe('narrateBrowse', () => {
     expect(narrateBrowse({ kind: 'unknownRoutine', spoken: 'gardening' })).toContain('gardening')
   })
 
+  it('says a picked routine has gone without blaming the recipient', () => {
+    const line = narrateBrowse({ kind: 'selectionUnavailable' })
+
+    expect(line).toContain('not on your list any more')
+    // `unknownRoutine` is the misheard-you message; a button press was heard
+    // perfectly and must not get that wording.
+    expect(line).not.toContain('could not find')
+  })
+
   it('covers the remaining effects', () => {
     expect(narrateBrowse({ kind: 'nothingAssigned' })).toContain('Nothing is assigned')
     expect(narrateBrowse({ kind: 'atCatalog' })).toContain('top')
