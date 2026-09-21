@@ -1,4 +1,5 @@
 import type { SpokenBrowseIntent } from './browse-navigation'
+import { normalizeUtterance } from './transcript-text'
 
 /**
  * Openings that ask for the list of categories, matched as whole utterances.
@@ -47,7 +48,7 @@ const START_OPENINGS = ['start the', 'begin the', 'lets do', 'let us do', 'start
  * what was assigned.
  */
 export function recognizeBrowseIntent(transcript: string): SpokenBrowseIntent | null {
-  const normalized = normalize(transcript)
+  const normalized = normalizeUtterance(transcript)
   if (!normalized) return null
 
   if (CATEGORY_LIST_PHRASES.has(normalized)) return { kind: 'listCategories' }
@@ -74,30 +75,4 @@ function after(normalized: string, openings: readonly string[]): string | null {
   }
 
   return null
-}
-
-const LEADING_FILLER = new Set(['okay', 'ok', 'um', 'uh', 'so', 'and', 'well', 'yeah', 'alright'])
-
-/**
- * Closing words that carry no request. Both openings here are matched as whole
- * utterances, so without this "list my categories please" and "go back please"
- * fall through as if nothing had been said.
- */
-const TRAILING_FILLER = new Set(['please', 'thanks', 'now'])
-
-function normalize(transcript: string): string {
-  const words = transcript
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-
-  let start = 0
-  while (start < words.length && LEADING_FILLER.has(words[start] as string)) start += 1
-
-  let end = words.length
-  while (end > start && TRAILING_FILLER.has(words[end - 1] as string)) end -= 1
-
-  return words.slice(start, end).join(' ')
 }

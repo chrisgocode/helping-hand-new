@@ -1,3 +1,5 @@
+import { normalizeName } from './transcript-text'
+
 /**
  * Finds the one item a recipient named out loud, or nothing.
  *
@@ -15,7 +17,7 @@ export function matchByName<T>(
   spoken: string,
   nameOf: (item: T) => string,
 ): T | null {
-  const target = normalize(spoken)
+  const target = normalizeName(spoken)
   if (!target) return null
 
   // A name that normalizes to nothing — every word ignored, as in "The list",
@@ -24,7 +26,7 @@ export function matchByName<T>(
   // unreachable by name whichever way this goes, and returning nothing is safer
   // than starting a routine the recipient did not ask for.
   const candidates = items
-    .map((item) => ({ item, name: normalize(nameOf(item)) }))
+    .map((item) => ({ item, name: normalizeName(nameOf(item)) }))
     .filter((candidate) => candidate.name !== '')
 
   const exact = candidates.filter((candidate) => candidate.name === target)
@@ -55,17 +57,4 @@ function bestBySharedWords<T>(
 
   // A tie means the recipient has not said enough to tell them apart.
   return scored[1]?.shared === best.shared ? null : best.item
-}
-
-/** Noise words that carry no naming information when someone speaks a title. */
-const IGNORED = new Set(['the', 'a', 'an', 'my', 'routine', 'task', 'tasks', 'list', 'category'])
-
-function normalize(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter((word) => word && !IGNORED.has(word))
-    .join(' ')
 }

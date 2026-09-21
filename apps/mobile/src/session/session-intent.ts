@@ -1,4 +1,5 @@
 import type { SessionIntent } from './guided-session'
+import { normalizeUtterance } from './transcript-text'
 
 /**
  * The spoken phrases that map to a traversal intent. Everything else is a
@@ -15,14 +16,6 @@ const INTENT_PHRASES: Readonly<Record<SessionIntent, readonly string[]>> = {
   resume: ['resume', 'continue', 'carry on', 'keep going'],
   stop: ['stop', 'quit', 'end session', 'im finished', 'i am finished', 'cancel'],
 }
-
-/**
- * Leading words a recipient adds without meaning anything by them. Stripped so
- * "okay, next" reaches the same phrase as "next".
- */
-const LEADING_FILLER = new Set(['okay', 'ok', 'um', 'uh', 'so', 'and', 'well', 'yeah', 'alright'])
-
-const TRAILING_FILLER = new Set(['please', 'thanks', 'now'])
 
 const PHRASE_LOOKUP: ReadonlyMap<string, SessionIntent> = new Map(
   Object.entries(INTENT_PHRASES).flatMap(([intent, phrases]) =>
@@ -42,7 +35,7 @@ export const COMMAND_PHRASES: readonly string[] = [
 ]
 
 export function stopsVoiceControls(transcript: string): boolean {
-  return normalize(transcript) === STOP_VOICE_CONTROLS_PHRASE
+  return normalizeUtterance(transcript) === STOP_VOICE_CONTROLS_PHRASE
 }
 
 /**
@@ -54,25 +47,8 @@ export function stopsVoiceControls(transcript: string): boolean {
  * recoverable by repeating it; the cost of being loose is not.
  */
 export function recognizeIntent(transcript: string): SessionIntent | null {
-  const normalized = normalize(transcript)
+  const normalized = normalizeUtterance(transcript)
   if (!normalized) return null
 
   return PHRASE_LOOKUP.get(normalized) ?? null
-}
-
-function normalize(transcript: string): string {
-  const words = transcript
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-
-  let start = 0
-  while (start < words.length && LEADING_FILLER.has(words[start] as string)) start += 1
-
-  let end = words.length
-  while (end > start && TRAILING_FILLER.has(words[end - 1] as string)) end -= 1
-
-  return words.slice(start, end).join(' ')
 }

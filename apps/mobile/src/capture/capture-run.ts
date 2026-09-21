@@ -1,8 +1,8 @@
 import type { AudioRouteDescription } from '../../modules/audio-route'
-import { recognizeBrowseIntent } from '../session/browse-intent'
 import type { SpokenBrowseIntent } from '../session/browse-navigation'
-import { recognizeIntent } from '../session/session-intent'
 import { matchByName } from '../session/spoken-match'
+import type { CatalogCategory } from '../session/task-catalog'
+import { recognizeUtterance } from '../session/utterance-recognition'
 import { isCapturingThroughBluetoothMic } from '../voice/audio-route'
 import {
   CAPTURE_SCRIPT,
@@ -10,6 +10,11 @@ import {
   type CapturePrompt,
   SAMPLE_NAMES,
 } from './capture-script'
+
+const SAMPLE_CATALOG: readonly CatalogCategory[] = [
+  { id: 'kitchen', name: 'Kitchen', routines: [] },
+  { id: 'bathroom', name: 'Bathroom', routines: [] },
+]
 
 /** One prompt, as it was actually spoken and heard. */
 export type CaptureTake = {
@@ -145,21 +150,31 @@ export function scoreTake(take: CaptureTake): TakeOutcome {
   if (take.error !== null) return 'error'
   if (take.transcript === null) return take.expect === null ? 'correct' : 'missed'
 
-  const traversal = recognizeIntent(take.transcript)
-  const browsing = traversal ? null : recognizeBrowseIntent(take.transcript)
+  const recognized = recognizeUtterance(take.transcript, {
+    catalog: SAMPLE_CATALOG,
+    isRunning: take.purpose !== 'name',
+  })
 
   if (take.expect === null) {
-    return traversal === null && browsing === null ? 'correct' : 'falseAccept'
+    return recognized.kind === 'unrecognised' ? 'correct' : 'falseAccept'
+  }
+
+  if (take.expect === 'stopVoice') {
+    if (recognized.kind === 'unrecognised') return 'missed'
+    return recognized.kind === 'stopVoice' ? 'correct' : 'wrong'
   }
 
   if (typeof take.expect === 'string') {
-    if (traversal === null) return browsing === null ? 'missed' : 'wrong'
-    return traversal === take.expect ? 'correct' : 'wrong'
+    if (recognized.kind === 'unrecognised') return 'missed'
+    return recognized.kind === 'traversal' && recognized.intent === take.expect
+      ? 'correct'
+      : 'wrong'
   }
 
-  if (browsing === null) return traversal === null ? 'missed' : 'wrong'
+  if (recognized.kind === 'unrecognised') return 'missed'
+  if (recognized.kind !== 'browse') return 'wrong'
 
-  return sameBrowseTarget(take.expect, browsing) ? 'correct' : 'wrong'
+  return sameBrowseTarget(take.expect, recognized.intent) ? 'correct' : 'wrong'
 }
 
 /**

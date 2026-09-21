@@ -45,34 +45,6 @@ describe('useGuidedSession', () => {
     expect(result.current.task?.title).toBe('Brush teeth')
   })
 
-  it('advances on a recognised transcript', async () => {
-    const { voice, spoken } = createRecordingVoice()
-    const { result } = renderHook(() => useGuidedSession(voice))
-
-    await act(() => result.current.start(tree))
-    await act(async () => {
-      expect(await result.current.hear('done')).toBe(true)
-    })
-
-    expect(result.current.task?.title).toBe('Wash face')
-    expect(spoken.at(-1)).toBe('Next, Wash face.')
-  })
-
-  it('reports an unrecognised transcript instead of guessing', async () => {
-    const { voice, spoken } = createRecordingVoice()
-    const { result } = renderHook(() => useGuidedSession(voice))
-
-    await act(() => result.current.start(tree))
-    const before = spoken.length
-
-    await act(async () => {
-      expect(await result.current.hear('I do not understand this one')).toBe(false)
-    })
-
-    expect(result.current.task?.title).toBe('Brush teeth')
-    expect(spoken).toHaveLength(before)
-  })
-
   it('applies consecutive commands against the newest session', async () => {
     const { voice, spoken } = createRecordingVoice()
     const { result } = renderHook(() => useGuidedSession(voice))

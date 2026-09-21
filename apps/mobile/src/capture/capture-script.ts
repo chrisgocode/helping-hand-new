@@ -18,6 +18,7 @@ export const SAMPLE_NAMES = [
 ] as const
 
 export type CapturePurpose = 'command' | 'negative' | 'name' | 'freeform'
+export type CaptureExpectation = SessionIntent | SpokenBrowseIntent | 'stopVoice' | null
 
 export type CapturePrompt = {
   readonly id: string
@@ -37,7 +38,7 @@ export type CapturePrompt = {
    * Only the spoken shape: a script lists what a tester says out loud, so it
    * can never expect the id-carrying form a screen produces.
    */
-  readonly expect: SessionIntent | SpokenBrowseIntent | null
+  readonly expect: CaptureExpectation
 }
 
 /**
@@ -65,6 +66,12 @@ export const CAPTURE_SCRIPT: readonly CapturePrompt[] = [
   { id: 'cmd-pause', say: 'Hold on', purpose: 'command', expect: 'pause' },
   { id: 'cmd-resume', say: 'Keep going', purpose: 'command', expect: 'resume' },
   { id: 'cmd-stop', say: 'Stop', purpose: 'command', expect: 'stop' },
+  {
+    id: 'cmd-stop-helping-hand',
+    say: 'Stop Helping Hand',
+    purpose: 'command',
+    expect: 'stopVoice',
+  },
   {
     id: 'neg-stop-sentence',
     say: 'I had to stop at the shop on the way',

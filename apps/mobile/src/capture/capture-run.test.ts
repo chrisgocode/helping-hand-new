@@ -145,6 +145,12 @@ describe('scoreTake', () => {
     expect(scoreTake(take({ transcript: 'stop' }))).toBe('wrong')
   })
 
+  it('scores the voice-control shutdown through the production recognizer', () => {
+    expect(scoreTake(take({ expect: 'stopVoice', transcript: 'stop helping hand' }))).toBe(
+      'correct',
+    )
+  })
+
   it('counts a command the recogniser did not produce usable words for', () => {
     expect(scoreTake(take({ transcript: null }))).toBe('missed')
     expect(scoreTake(take({ transcript: 'dunn' }))).toBe('missed')

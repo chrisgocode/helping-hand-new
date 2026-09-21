@@ -1,10 +1,5 @@
 import * as Speech from 'expo-speech'
-import {
-  type ExpoSpeechRecognitionErrorEvent,
-  ExpoSpeechRecognitionModule,
-} from 'expo-speech-recognition'
-import AudioRoute from '../../modules/audio-route'
-import { handsFreeCategory, openHandsFreeRoute } from './hands-free-route'
+import { type RecognitionRun, runRecognition } from './recognition-run'
 import type { VoiceInterface } from './voice-interface'
 
 const RECOVERABLE_RECOGNITION_ERRORS = new Set([
@@ -32,8 +27,7 @@ const wait = (milliseconds: number) =>
  * the route, rather than expo-speech opening a session of its own.
  */
 export function createExpoSpeechVoice(): VoiceInterface {
-  let permissionsGranted = false
-  let recognitionActive = false
+  let recognition: RecognitionRun | null = null
   let interruption = 0
   let speaking: Promise<void> = Promise.resolve()
   const preferredEnglishVoice = Speech.getAvailableVoicesAsync()
@@ -75,7 +69,8 @@ export function createExpoSpeechVoice(): VoiceInterface {
   }
 
   const abortRecognition = () => {
-    if (recognitionActive) ExpoSpeechRecognitionModule.abort()
+    recognition?.cancel()
+    recognition = null
   }
 
   const waitForSpeech = async () => {
@@ -85,79 +80,6 @@ export function createExpoSpeechVoice(): VoiceInterface {
       await current
     } while (current !== speaking)
   }
-
-  const prepareToListen = async () => {
-    if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
-      throw new Error('Voice recognition is not available on this device.')
-    }
-
-    if (!permissionsGranted) {
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
-      if (!permission.granted) {
-        throw new Error('Microphone and speech recognition access are required for voice controls.')
-      }
-      permissionsGranted = true
-    }
-
-    await openHandsFreeRoute({
-      setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
-      activate: () => ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true),
-      getRoute: () => AudioRoute.getCurrentRoute(),
-      wait,
-    })
-  }
-
-  const recognize = (contextualStrings: readonly string[]) =>
-    new Promise<string | null>((resolve, reject) => {
-      let transcript: string | null = null
-      let error: ExpoSpeechRecognitionErrorEvent | null = null
-
-      const result = ExpoSpeechRecognitionModule.addListener('result', (event) => {
-        const heard = event.results[0]?.transcript?.trim()
-        if (heard) transcript = heard
-      })
-      const failed = ExpoSpeechRecognitionModule.addListener('error', (event) => {
-        error = event
-      })
-      const ended = ExpoSpeechRecognitionModule.addListener('end', () => {
-        recognitionActive = false
-        result.remove()
-        failed.remove()
-        ended.remove()
-
-        if (error && !RECOVERABLE_RECOGNITION_ERRORS.has(error.error)) {
-          reject(new Error('Voice recognition stopped. Tap voice controls to try again.'))
-          return
-        }
-
-        if (error) {
-          setTimeout(() => resolve(null), RECOGNITION_RETRY_DELAY_MS)
-          return
-        }
-
-        resolve(transcript)
-      })
-
-      recognitionActive = true
-      try {
-        ExpoSpeechRecognitionModule.start({
-          lang: 'en-US',
-          interimResults: false,
-          continuous: false,
-          requiresOnDeviceRecognition: true,
-          addsPunctuation: false,
-          contextualStrings: [...contextualStrings],
-          iosTaskHint: 'confirmation',
-          iosCategory: handsFreeCategory(),
-        })
-      } catch (cause) {
-        recognitionActive = false
-        result.remove()
-        failed.remove()
-        ended.remove()
-        reject(cause)
-      }
-    })
 
   return {
     async speak(text) {
@@ -177,11 +99,24 @@ export function createExpoSpeechVoice(): VoiceInterface {
       await waitForSpeech()
       if (startedDuring !== interruption) return null
 
-      await prepareToListen()
-      await waitForSpeech()
-      if (startedDuring !== interruption) return null
+      const run = runRecognition({ contextualStrings })
+      recognition = run
 
-      return recognize(contextualStrings)
+      try {
+        const heard = await run.result
+        if (heard.error && !RECOVERABLE_RECOGNITION_ERRORS.has(heard.error)) {
+          throw new Error('Voice recognition stopped. Tap voice controls to try again.')
+        }
+
+        if (heard.error) {
+          await wait(RECOGNITION_RETRY_DELAY_MS)
+          return null
+        }
+
+        return heard.transcript
+      } finally {
+        if (recognition === run) recognition = null
+      }
     },
 
     async stop() {

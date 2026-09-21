@@ -1,7 +1,6 @@
 import type { RecipientTaskTree } from '@helping-hand/schemas'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VoiceInterface } from '../voice/voice-interface'
-import { recognizeBrowseIntent } from './browse-intent'
 import { narrateBrowse } from './browse-narration'
 import {
   type BrowseIntent,
@@ -9,9 +8,10 @@ import {
   type BrowseTransition,
   browse,
 } from './browse-navigation'
-import { COMMAND_PHRASES, stopsVoiceControls } from './session-intent'
-import { buildCatalog, type CatalogCategory, catalogPhrases, findCategory } from './task-catalog'
+import { COMMAND_PHRASES } from './session-intent'
+import { buildCatalog, type CatalogCategory, catalogPhrases } from './task-catalog'
 import { useGuidedSession } from './use-guided-session'
+import { recognizeUtterance } from './utterance-recognition'
 
 /**
  * What became of something the recipient said. `unrecognised` is the escalation
@@ -94,28 +94,31 @@ export function useVoiceNavigation(
 
   const hear = useCallback(
     async (transcript: string) => {
-      if (stopsVoiceControls(transcript)) {
-        await stopListening()
-        await voice.speak('Voice controls are off.')
-        return 'stopped'
+      const recognized = recognizeUtterance(transcript, {
+        catalog,
+        isRunning: session.isRunning(),
+      })
+
+      switch (recognized.kind) {
+        case 'stopVoice':
+          await stopListening()
+          await voice.speak('Voice controls are off.')
+          return 'stopped'
+
+        case 'traversal':
+          await session.submit(recognized.intent)
+          return 'traversed'
+
+        case 'browse':
+          await request(recognized.intent)
+          return 'browsed'
+
+        case 'unrecognised':
+          await voice.speak('I did not understand. Please try again.')
+          return 'unrecognised'
       }
-
-      if (await session.hear(transcript)) return 'traversed'
-
-      const browsing =
-        recognizeBrowseIntent(transcript) ??
-        (position.kind === 'catalog' && findCategory(catalog, transcript)
-          ? { kind: 'listRoutines' as const, spoken: transcript }
-          : null)
-      if (!browsing) {
-        await voice.speak('I did not understand. Please try again.')
-        return 'unrecognised'
-      }
-
-      await request(browsing)
-      return 'browsed'
     },
-    [catalog, position.kind, session, request, stopListening, voice],
+    [catalog, session, request, stopListening, voice],
   )
 
   const latestHear = useRef(hear)

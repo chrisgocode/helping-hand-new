@@ -1,10 +1,9 @@
 import { Directory, Paths } from 'expo-file-system'
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AudioRoute, { type AudioRouteDescription } from '../../modules/audio-route'
 import { COMMAND_PHRASES } from '../session/session-intent'
 import { describeRoute, isCapturingThroughBluetoothMic } from '../voice/audio-route'
-import { handsFreeCategory, openHandsFreeRoute } from '../voice/hands-free-route'
+import { type RecognitionRun, runRecognition } from '../voice/recognition-run'
 import {
   type CaptureRun,
   currentPrompt,
@@ -66,55 +65,14 @@ export function useCapture(): CaptureController {
   const [starting, setStarting] = useState(false)
   const [listening, setListening] = useState(false)
   const [route, setRoute] = useState<AudioRouteDescription | null>(null)
-  const heard = useRef<{ transcript: string | null; uri: string | null; error: string | null }>({
-    transcript: null,
-    uri: null,
-    error: null,
-  })
-  // A take is only committed once, whether recognition ended on its own or the
-  // tester stopped it.
-  const awaitingTake = useRef(false)
-  // `listening` only turns true once permission and the route are settled, so it
-  // cannot guard the startup window itself. A second tap in that window would
-  // start recognition twice against one prompt, and only a ref is current enough
-  // to see the first tap from inside the same render.
-  const startingTake = useRef(false)
+  const activeRecognition = useRef<RecognitionRun | null>(null)
+  // The last completed run still owns the active audio session until this
+  // screen leaves, even though it no longer blocks the next take.
+  const sessionRecognition = useRef<RecognitionRun | null>(null)
   // Recognition and the audio session both outlive a render. Leaving the screen
   // mid-take has to tear down each of them, and the setup is asynchronous, so
   // the continuation also has to notice it is no longer wanted.
   const mounted = useRef(true)
-  const sessionActivated = useRef(false)
-
-  useSpeechRecognitionEvent('result', (event) => {
-    const transcript = event.results[0]?.transcript?.trim()
-    if (transcript) heard.current.transcript = transcript
-  })
-
-  useSpeechRecognitionEvent('audioend', (event) => {
-    heard.current.uri = event.uri ?? null
-  })
-
-  useSpeechRecognitionEvent('error', (event) => {
-    heard.current.error = event.error ?? 'unknown'
-  })
-
-  /**
-   * The take is recorded here rather than when the tester stops it. On iOS a
-   * final result only arrives after recognition has stopped, and the audio path
-   * arrives later still, so reading either at the moment of stopping captures
-   * nothing at all.
-   */
-  useSpeechRecognitionEvent('end', () => {
-    setListening(false)
-    if (!awaitingTake.current) return
-    awaitingTake.current = false
-
-    const current = AudioRoute.getCurrentRoute()
-    setRoute(current)
-    setRun((existing) =>
-      existing ? recordTake(existing, { ...heard.current, route: current }) : existing,
-    )
-  })
 
   const refreshRoute = useCallback(() => setRoute(AudioRoute.getCurrentRoute()), [])
 
@@ -172,16 +130,9 @@ export function useCapture(): CaptureController {
 
     return () => {
       mounted.current = false
-
-      if (startingTake.current || awaitingTake.current) {
-        awaitingTake.current = false
-        ExpoSpeechRecognitionModule.abort()
-      }
-
-      if (sessionActivated.current) {
-        sessionActivated.current = false
-        ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(false)
-      }
+      sessionRecognition.current?.cancel()
+      activeRecognition.current = null
+      sessionRecognition.current = null
     }
   }, [])
 
@@ -194,62 +145,62 @@ export function useCapture(): CaptureController {
   )
 
   const listen = useCallback(async () => {
-    if (startingTake.current || listening) return
-    startingTake.current = true
+    if (activeRecognition.current) return
     setStarting(true)
 
+    const prompt = run ? currentPrompt(run) : null
+    const recognition = runRecognition({
+      contextualStrings: CONTEXTUAL_STRINGS,
+      recordingOptions: {
+        persist: true,
+        outputDirectory: captureDirectory().uri,
+        // Named after the prompt so a set stays readable once the files are off
+        // the device and separated from the manifest.
+        outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
+      },
+      onStart: () => {
+        if (!mounted.current) return
+        setStarting(false)
+        setListening(true)
+        refreshRoute()
+      },
+    })
+    activeRecognition.current = recognition
+    sessionRecognition.current = recognition
+
     try {
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
-      if (!permission.granted || !mounted.current) return
+      const heard = await recognition.result
+      if (!mounted.current || activeRecognition.current !== recognition) return
 
-      const prompt = run ? currentPrompt(run) : null
-
-      // The route is opened and allowed to settle before anything listens through
-      // it. Letting recognition open the session means the switch away from high
-      // quality output interrupts the very take that caused it.
-      await openHandsFreeRoute({
-        setCategory: () => ExpoSpeechRecognitionModule.setCategoryIOS(handsFreeCategory()),
-        activate: () => {
-          sessionActivated.current = true
-          return ExpoSpeechRecognitionModule.setAudioSessionActiveIOS(true)
-        },
-        getRoute: () => AudioRoute.getCurrentRoute(),
-        wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-      })
-      if (!mounted.current) return
-      refreshRoute()
-
-      heard.current = { transcript: null, uri: null, error: null }
-      awaitingTake.current = true
-      setListening(true)
-
-      ExpoSpeechRecognitionModule.start({
-        lang: 'en-US',
-        interimResults: false,
-        continuous: false,
-        requiresOnDeviceRecognition: true,
-        addsPunctuation: false,
-        contextualStrings: CONTEXTUAL_STRINGS,
-        iosTaskHint: 'confirmation',
-        iosCategory: handsFreeCategory(),
-        recordingOptions: {
-          persist: true,
-          outputDirectory: captureDirectory().uri,
-          // Named after the prompt so a set stays readable once the files are off
-          // the device and separated from the manifest.
-          outputFileName: `${run?.environment ?? 'unknown'}-${prompt?.id ?? 'unknown'}.wav`,
-        },
-      })
+      const current = AudioRoute.getCurrentRoute()
+      setRoute(current)
+      setRun((existing) =>
+        existing
+          ? recordTake(existing, {
+              transcript: heard.transcript,
+              uri: heard.uri,
+              error: heard.error,
+              route: current,
+            })
+          : existing,
+      )
+    } catch {
+      // Permission denial and startup failures leave the take available to retry.
     } finally {
-      startingTake.current = false
-      setStarting(false)
+      if (activeRecognition.current === recognition) {
+        activeRecognition.current = null
+        if (mounted.current) {
+          setStarting(false)
+          setListening(false)
+        }
+      }
     }
-  }, [listening, refreshRoute, run])
+  }, [refreshRoute, run])
 
   // Stopping only asks recognition to finish. The take is committed by the
   // `end` event, once the transcript and audio path have actually arrived.
   const finishTake = useCallback(() => {
-    ExpoSpeechRecognitionModule.stop()
+    activeRecognition.current?.finish()
   }, [])
 
   const redo = useCallback(

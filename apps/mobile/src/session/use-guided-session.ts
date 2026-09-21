@@ -9,17 +9,15 @@ import {
   type SessionIntent,
   startSession,
 } from './guided-session'
-import { recognizeIntent } from './session-intent'
 import { narrate } from './session-narration'
 
 export type GuidedSessionController = {
   readonly session: GuidedSession | null
   readonly task: SequencedTask | null
   readonly isSpeaking: boolean
+  isRunning(): boolean
   start(root: TaskNode): Promise<void>
   submit(intent: SessionIntent): Promise<void>
-  /** Returns false when the transcript was not a command, so callers can escalate it. */
-  hear(transcript: string): Promise<boolean>
   end(): Promise<void>
 }
 
@@ -74,17 +72,6 @@ export function useGuidedSession(voice: VoiceInterface): GuidedSessionController
     [commit],
   )
 
-  const hear = useCallback(
-    async (transcript: string) => {
-      const intent = recognizeIntent(transcript)
-      if (!intent || !latest.current || !currentTask(latest.current)) return false
-
-      await submit(intent)
-      return true
-    },
-    [submit],
-  )
-
   const end = useCallback(async () => {
     if (latest.current) await submit('stop')
     await voice.stop()
@@ -94,9 +81,9 @@ export function useGuidedSession(voice: VoiceInterface): GuidedSessionController
     session,
     task: session ? currentTask(session) : null,
     isSpeaking,
+    isRunning: () => latest.current !== null && currentTask(latest.current) !== null,
     start,
     submit,
-    hear,
     end,
   }
 }
