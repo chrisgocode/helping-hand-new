@@ -5,6 +5,7 @@ import {
   catalogPhrases,
   findCategory,
   findRoutine,
+  UNCATEGORISED_ID,
   UNCATEGORISED_NAME,
 } from './task-catalog'
 
@@ -23,6 +24,18 @@ const trees = [
 ]
 
 describe('buildCatalog', () => {
+  it('gives every category an id, including the one nobody filed', () => {
+    const catalog = buildCatalog(trees)
+
+    // A screen renders a button per category and has to point at one of them,
+    // so "no category" needs something pointable rather than a null.
+    expect(catalog.map((category) => category.id)).toEqual([
+      kitchen.id,
+      bathroom.id,
+      UNCATEGORISED_ID,
+    ])
+  })
+
   it('groups routines under the category their caretaker chose', () => {
     const catalog = buildCatalog(trees)
 
@@ -38,7 +51,7 @@ describe('buildCatalog', () => {
     const catalog = buildCatalog(trees)
     const last = catalog.at(-1)
 
-    expect(last?.id).toBeNull()
+    expect(last?.id).toBe(UNCATEGORISED_ID)
     expect(last?.routines.map((entry) => entry.title)).toEqual(['Take medication'])
   })
 

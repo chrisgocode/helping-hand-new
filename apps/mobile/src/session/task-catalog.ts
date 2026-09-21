@@ -3,12 +3,20 @@ import { matchByName } from './spoken-match'
 
 /** Routines grouped the way a recipient would ask for them. */
 export type CatalogCategory = {
-  readonly id: string | null
+  readonly id: string
   readonly name: string
   readonly routines: readonly RecipientTaskTree[]
 }
 
 export const UNCATEGORISED_NAME = 'Everything else'
+
+/**
+ * The id standing in for "no category". Routines a caretaker never filed still
+ * have to be reachable, and a recipient picking that group from a screen needs
+ * something to point at. Category ids are UUIDs, so this cannot collide with
+ * one, and giving the bucket a real id keeps `null` out of the catalog entirely.
+ */
+export const UNCATEGORISED_ID = 'uncategorised'
 
 /**
  * Groups assigned routines by the category their caretaker put them in.
@@ -19,13 +27,10 @@ export const UNCATEGORISED_NAME = 'Everything else'
  * has to be able to reach it.
  */
 export function buildCatalog(trees: readonly RecipientTaskTree[]): CatalogCategory[] {
-  const grouped = new Map<
-    string,
-    { id: string | null; name: string; routines: RecipientTaskTree[] }
-  >()
+  const grouped = new Map<string, { id: string; name: string; routines: RecipientTaskTree[] }>()
 
   for (const tree of trees) {
-    const key = tree.category?.id ?? ''
+    const key = tree.category?.id ?? UNCATEGORISED_ID
     const existing = grouped.get(key)
 
     if (existing) {
@@ -34,7 +39,7 @@ export function buildCatalog(trees: readonly RecipientTaskTree[]): CatalogCatego
     }
 
     grouped.set(key, {
-      id: tree.category?.id ?? null,
+      id: key,
       name: tree.category?.name ?? UNCATEGORISED_NAME,
       routines: [tree],
     })
@@ -43,8 +48,8 @@ export function buildCatalog(trees: readonly RecipientTaskTree[]): CatalogCatego
   const categories = [...grouped.values()]
 
   return [
-    ...categories.filter((category) => category.id !== null),
-    ...categories.filter((category) => category.id === null),
+    ...categories.filter((category) => category.id !== UNCATEGORISED_ID),
+    ...categories.filter((category) => category.id === UNCATEGORISED_ID),
   ]
 }
 

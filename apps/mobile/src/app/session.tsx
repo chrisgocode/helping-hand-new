@@ -125,7 +125,7 @@ export default function SessionScreen() {
               </Button>
               {navigation.catalog.map((category) => (
                 <Button
-                  key={category.id ?? 'uncategorised'}
+                  key={category.id}
                   onPress={() =>
                     navigation.request({ kind: 'listRoutines', spoken: category.name })
                   }
