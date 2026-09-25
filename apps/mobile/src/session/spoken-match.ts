@@ -1,0 +1,60 @@
+import { normalizeName } from './transcript-text'
+
+/**
+ * Finds the one item a recipient named out loud, or nothing.
+ *
+ * Names here are written by caretakers, so they cannot be matched against a
+ * fixed phrase table the way traversal commands are. Matching widens in stages —
+ * exact, then containment, then shared words — and stops at the first stage that
+ * produces a single answer.
+ *
+ * Ambiguity returns null rather than a guess. Starting the wrong routine is a
+ * worse outcome for a recipient than being asked which one they meant, and the
+ * caller can narrow it down by listing the candidates back.
+ */
+export function matchByName<T>(
+  items: readonly T[],
+  spoken: string,
+  nameOf: (item: T) => string,
+): T | null {
+  const target = normalizeName(spoken)
+  if (!target) return null
+
+  // A name that normalizes to nothing — every word ignored, as in "The list",
+  // or no ASCII letters at all — would contain and be contained by every
+  // utterance, and so would be the single candidate for anything said. It is
+  // unreachable by name whichever way this goes, and returning nothing is safer
+  // than starting a routine the recipient did not ask for.
+  const candidates = items
+    .map((item) => ({ item, name: normalizeName(nameOf(item)) }))
+    .filter((candidate) => candidate.name !== '')
+
+  const exact = candidates.filter((candidate) => candidate.name === target)
+  if (exact.length > 0) return exact.length === 1 ? (exact[0]?.item ?? null) : null
+
+  const contained = candidates.filter(
+    (candidate) => candidate.name.includes(target) || target.includes(candidate.name),
+  )
+  if (contained.length > 0) return contained.length === 1 ? (contained[0]?.item ?? null) : null
+
+  return bestBySharedWords(candidates, new Set(target.split(' ')))
+}
+
+function bestBySharedWords<T>(
+  candidates: readonly { item: T; name: string }[],
+  spokenWords: ReadonlySet<string>,
+): T | null {
+  const scored = candidates
+    .map(({ item, name }) => ({
+      item,
+      shared: name.split(' ').filter((word) => spokenWords.has(word)).length,
+    }))
+    .filter((candidate) => candidate.shared > 0)
+    .sort((left, right) => right.shared - left.shared)
+
+  const best = scored[0]
+  if (!best) return null
+
+  // A tie means the recipient has not said enough to tell them apart.
+  return scored[1]?.shared === best.shared ? null : best.item
+}

@@ -40,4 +40,10 @@ export const config = Object.freeze({
   api: Object.freeze({
     origin: readApiOrigin(process.env.EXPO_PUBLIC_API_ORIGIN),
   }),
+  /**
+   * Whether the capture harness is reachable. It cannot key off `__DEV__`: a
+   * build handed to a tester is a release build, which is exactly when the
+   * harness has to be visible and never is under that flag.
+   */
+  captureHarness: process.env.EXPO_PUBLIC_ENABLE_CAPTURE === 'true',
 })

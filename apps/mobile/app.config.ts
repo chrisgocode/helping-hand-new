@@ -16,6 +16,13 @@ const config: ExpoConfig = {
     bundleIdentifier: 'dev.chrisgo.helpinghand',
     supportsTablet: false,
     config: { usesNonExemptEncryption: false },
+    infoPlist: {
+      // Capture sets are collected on a borrowed device and have to leave it.
+      // Both keys are needed for the folder to appear in Files, where a tester
+      // can send the whole set at once instead of one file at a time.
+      UIFileSharingEnabled: true,
+      LSSupportsOpeningDocumentsInPlace: true,
+    },
   },
   android: {
     package: 'dev.chrisgo.helpinghand',
@@ -56,12 +63,12 @@ const config: ExpoConfig = {
       },
     ],
     [
-      '@chrisgocode/expo-meta-wearables-dat',
+      'expo-speech-recognition',
       {
-        urlScheme: scheme,
-        metaAppId: process.env.META_APP_ID,
-        clientToken: process.env.META_CLIENT_TOKEN,
-        bluetoothUsageDescription: 'Helping Hand uses Bluetooth to communicate with Meta glasses.',
+        microphonePermission:
+          'Allow Helping Hand to hear you so you can say Done, Repeat, or the name of a routine instead of touching your phone.',
+        speechRecognitionPermission:
+          'Allow Helping Hand to understand what you say so it can move through a routine hands free.',
       },
     ],
   ],

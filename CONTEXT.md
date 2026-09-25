@@ -43,6 +43,10 @@ _Avoid_: Automatically persisted AI change, replacement task tree
 A temporary traversal of a task tree that shows one actionable task at a time. Ending the session clears its current position and does not change the saved task tree.
 _Avoid_: Permanent progress, task completion
 
+**Browse target**:
+What a browsing request points at before a routine is running: either a name the recipient spoke, or a routine or category they picked directly. A spoken target is resolved by matching against assigned names, so it can be ambiguous or match nothing; a picked target names exactly one thing, and either it is still assigned or it no longer is.
+_Avoid_: Search term, query, selection
+
 ## Recipient access
 
 **Caretaker**:

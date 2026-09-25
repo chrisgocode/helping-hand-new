@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('config', () => {
@@ -13,7 +15,44 @@ describe('config', () => {
     expect(config).toEqual({
       environment: 'production',
       api: { origin: 'https://api.helpinghand.chrisgo.dev' },
+      captureHarness: false,
     })
+  })
+
+  it('reaches the capture harness only when the build opts in', async () => {
+    vi.stubEnv('EXPO_PUBLIC_API_ORIGIN', 'https://api.example.com')
+    vi.stubEnv('EXPO_PUBLIC_APP_ENV', 'preview')
+    vi.stubEnv('EXPO_PUBLIC_ENABLE_CAPTURE', 'true')
+
+    expect((await import('./config')).config.captureHarness).toBe(true)
+  })
+
+  it.each(['false', '1', 'yes', undefined])(
+    'keeps the capture harness out of a build that did not ask for it: %s',
+    async (value) => {
+      vi.stubEnv('EXPO_PUBLIC_API_ORIGIN', 'https://api.example.com')
+      vi.stubEnv('EXPO_PUBLIC_APP_ENV', 'production')
+      vi.stubEnv('EXPO_PUBLIC_ENABLE_CAPTURE', value)
+
+      expect((await import('./config')).config.captureHarness).toBe(false)
+    },
+  )
+
+  it('is not enabled by any build profile a recipient receives', async () => {
+    // The route refuses itself when the flag is off, so the flag is the whole
+    // gate. A profile that quietly turns it on would put a recording screen on
+    // a recipient's phone, reachable over the `helpinghand` scheme.
+    // Resolved from the working directory because the suite runs under jsdom,
+    // where `import.meta.url` is an http URL rather than a file one.
+    const easConfig = JSON.parse(await readFile(resolve(process.cwd(), 'eas.json'), 'utf8')) as {
+      build: Record<string, { env?: Record<string, string> }>
+    }
+
+    const enabling = Object.entries(easConfig.build)
+      .filter(([, profile]) => profile.env?.EXPO_PUBLIC_ENABLE_CAPTURE === 'true')
+      .map(([name]) => name)
+
+    expect(enabling).toEqual(['capture'])
   })
 
   it.each(['', 'not-a-url', 'ftp://api.example.com', 'https://api.example.com/v1'])(

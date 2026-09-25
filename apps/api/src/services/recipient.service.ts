@@ -4,7 +4,7 @@ import {
   RECIPIENT_LIMITS,
   type Recipient,
   type RecipientAssignment,
-  type TaskNode,
+  type RecipientTaskTree,
   type UpdateRecipientInput,
   updateRecipientInputSchema,
 } from '@helping-hand/schemas'
@@ -303,8 +303,12 @@ export class RecipientService {
     return recipient
   }
 
-  /** Complete assigned task trees, without any caretaker-only metadata. */
-  async getAssignedTaskTrees(recipientId: string): Promise<TaskNode[]> {
+  /**
+   * Complete assigned task trees, carrying only the metadata a recipient device
+   * needs: the category name they would use to ask for a routine. Revision and
+   * ownership stay caretaker-only.
+   */
+  async getAssignedTaskTrees(recipientId: string): Promise<RecipientTaskTree[]> {
     const { results } = await this.#database
       .prepare(
         `WITH RECURSIVE assigned(id) AS (
@@ -317,8 +321,28 @@ export class RecipientService {
       .bind(recipientId)
       .all<TaskRow>()
 
-    return buildTaskTrees(results).map(
-      ({ categoryId: _categoryId, revision: _revision, ...node }) => node,
-    )
+    const trees = buildTaskTrees(results)
+    const names = await this.#categoryNames(trees.map((tree) => tree.categoryId))
+
+    return trees.map(({ categoryId, revision: _revision, ...node }) => ({
+      ...node,
+      category:
+        categoryId && names.has(categoryId)
+          ? { id: categoryId, name: names.get(categoryId) as string }
+          : null,
+    }))
+  }
+
+  /** Names for the categories the given roots sit in, skipping uncategorised roots. */
+  async #categoryNames(categoryIds: (string | null)[]): Promise<Map<string, string>> {
+    const ids = [...new Set(categoryIds.filter((id): id is string => id !== null))]
+    if (ids.length === 0) return new Map()
+
+    const { results } = await this.#database
+      .prepare(`SELECT id, name FROM category WHERE id IN (${ids.map(() => '?').join(', ')})`)
+      .bind(...ids)
+      .all<{ id: string; name: string }>()
+
+    return new Map(results.map((row) => [row.id, row.name]))
   }
 }

@@ -20,6 +20,12 @@
       "bun": "1.4.0",
       "environment": "preview"
     },
+    "capture": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_ENABLE_CAPTURE": "true"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "bun": "1.4.0",
